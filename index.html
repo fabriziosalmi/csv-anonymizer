@@ -6,14 +6,23 @@
     <title>CSV Fuzzer/Anonymizer</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
+
     <div class="container mt-5">
         <div class="jumbotron">
+            <div class="theme-toggle">
+                <button id="theme-toggle-btn" aria-label="Toggle Theme">
+                    <i id="theme-icon" class="fas fa-sun"></i>
+                </button>
+            </div>
+
             <h1 class="display-4">CSV Fuzzer & Anonymizer</h1>
             <p class="lead">Upload a CSV file to fuzz and anonymize its data with configurable options and presets.</p>
             <hr class="my-4">
 
+            <!-- ... rest of your form content ... -->
             <div class="form-group">
                 <input type="file" class="form-control-file" id="csvFile" accept=".csv">
             </div>

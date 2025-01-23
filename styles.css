@@ -1,26 +1,187 @@
-/* Optional custom styles to enhance or override Bootstrap */
-.jumbotron {
-    background-color: #f8f9fa; /* Light grey background for jumbotron */
-    border-radius: 0.5rem;
-    padding: 2rem;
+/* styles.css */
+
+/* CSS Variables for Themes */
+:root {
+    --body-bg: #f8f9fa;
+    --text-color: #343a40;
+    --jumbotron-bg: #ffffff;
+    --btn-primary-bg: #007bff;
+    --btn-primary-text: #fff;
+    --btn-success-bg: #28a745;
+    --btn-success-text: #fff;
+    --card-bg: #ffffff;
+    --card-text: #343a40;
+    --theme-icon-color: #000;
+    --theme-toggle-hover-bg: rgba(0, 0, 0, 0.03); /* Even subtler hover background for light theme */
 }
 
+body {
+    background-color: var(--body-bg);
+    color: var(--text-color);
+    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother body transition */
+}
+
+.jumbotron {
+    background-color: var(--jumbotron-bg);
+    border-radius: 0.75rem; /* Slightly more rounded jumbotron corners */
+    padding: 2.25rem; /* Slightly increased padding */
+    color: var(--text-color);
+    position: relative;
+    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother jumbotron transition */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.04); /* Very subtle shadow for depth */
+}
+
+.card-body {
+    background-color: var(--card-bg);
+    color: var(--card-text);
+    border-radius: 0.5rem; /* Rounded card corners */
+    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother card transition */
+    box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.03); /* Even subtler card shadow */
+}
+
+
 .btn-primary {
-    background-color: #007bff; /* Bootstrap primary color */
-    border-color: #007bff;
+    background-color: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border-radius: 0.3rem; /* Slightly rounded button corners */
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; /* Button transition with shadow */
+    box-shadow: 0 0 0 rgba(0, 123, 255, 0.5); /* No initial shadow */
 }
 
 .btn-primary:hover {
     background-color: #0056b3;
     border-color: #0056b3;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5); /* Subtle shadow on hover */
 }
 
+.btn-primary:focus, .btn-primary.focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5); /* Keep shadow on focus */
+}
+
+
 .btn-success {
-    background-color: #28a745; /* Bootstrap success color */
-    border-color: #28a745;
+    background-color: var(--btn-success-bg);
+    border-color: var(--btn-success-bg);
+    color: var(--btn-success-text);
+    border-radius: 0.3rem;
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; /* Button transition with shadow */
+    box-shadow: 0 0 0 rgba(40, 167, 69, 0.5); /* No initial shadow */
 }
 
 .btn-success:hover {
     background-color: #1e7e34;
     border-color: #1e7e34;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5); /* Subtle shadow on hover */
+}
+
+.btn-success:focus, .btn-success.focus {
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5); /* Keep shadow on focus */
+}
+
+
+/* Dark Theme Styles */
+body.dark-theme {
+    --body-bg: #121212;
+    --text-color: #ffffff;
+    --jumbotron-bg: #212529;
+    --btn-primary-bg: #00bcd4;
+    --btn-primary-text: #000;
+    --btn-success-bg: #4caf50;
+    --btn-success-text: #000;
+    --card-bg: #343a40;
+    --card-text: #ffffff;
+    --theme-icon-color: #fff;
+    --theme-toggle-hover-bg: rgba(255, 255, 255, 0.03); /* Even subtler hover background for dark theme */
+}
+
+.dark-theme .jumbotron {
+    background-color: var(--jumbotron-bg);
+    color: var(--text-color);
+    box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.04); /* Subtle white shadow in dark mode */
+}
+
+.dark-theme .card-body {
+    background-color: var(--card-bg);
+    color: var(--card-text);
+    box-shadow: 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.03); /* Even subtler white card shadow */
+}
+
+
+.dark-theme .btn-primary {
+    background-color: var(--btn-primary-bg);
+    border-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    box-shadow: 0 0 0 rgba(0, 188, 212, 0.5); /* No initial shadow */
+}
+
+.dark-theme .btn-primary:hover {
+    box-shadow: 0 0 0 0.2rem rgba(0, 188, 212, 0.5); /* Subtle shadow on hover */
+}
+
+.dark-theme .btn-primary:focus, .dark-theme .btn-primary.focus {
+    box-shadow: 0 0 0 0.2rem rgba(0, 188, 212, 0.5); /* Keep shadow on focus */
+}
+
+
+.dark-theme .btn-success {
+    background-color: var(--btn-success-bg);
+    border-color: var(--btn-success-bg);
+    color: var(--btn-success-text);
+    box-shadow: 0 0 0 rgba(76, 175, 80, 0.5); /* No initial shadow */
+}
+
+.dark-theme .btn-success:hover {
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5); /* Subtle shadow on hover */
+}
+
+.dark-theme .btn-success:focus, .dark-theme .btn-success.focus {
+    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5); /* Keep shadow on focus */
+}
+
+
+/* Theme Toggle Button Styles */
+.theme-toggle {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 1000;
+}
+
+#theme-toggle-btn {
+    background: none;
+    border: none;
+    color: var(--theme-icon-color);
+    cursor: pointer;
+    padding: 0.5rem;
+    font-size: 1.2rem;
+    border-radius: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: background-color 0.3s ease, color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease; /* Added transform and box-shadow to transition */
+    box-shadow: 0 0 0 rgba(0, 0, 0, 0.1); /* Very subtle initial shadow */
+}
+
+#theme-toggle-btn:hover {
+    background-color: var(--theme-toggle-hover-bg); /* Using CSS variable for hover background */
+    transform: scale(1.05); /* Slight scale up on hover */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15); /* Slightly increased shadow on hover */
+}
+
+.dark-theme #theme-toggle-btn:hover {
+    background-color: var(--theme-toggle-hover-bg); /* Using CSS variable for dark theme hover background */
+    box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.15); /* Subtle white shadow on hover in dark mode */
+}
+
+
+#theme-icon {
+    transition: transform 0.5s ease-in-out; /* Smooth icon rotation during theme switch */
+    display: block; /* Ensure icon is a block element for transform to work correctly */
+}
+
+.dark-theme #theme-icon {
+    transform: rotate(360deg); /* Rotates icon when switching to dark theme */
 }

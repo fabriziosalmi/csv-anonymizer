@@ -20,6 +20,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const stringFuzzProbabilityOutput = document.getElementById('stringFuzzProbabilityOutput');
     const stringLightFuzzProbabilityOutput = document.getElementById('stringLightFuzzProbabilityOutput');
 
+    // Theme Toggle Elements
+    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    const themeIcon = document.getElementById('theme-icon');
+    const body = document.body;
 
     let csvData = null; // Store parsed CSV data
 
@@ -205,37 +209,82 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Helper Fuzzing Functions (IMPROVED and added fuzzEmail - Now configurable) ---
 
-    function generateRandomName() { // Kept for potential future use, though not used in core fuzzing now
-        const names = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Harry", "Ivy", "Jack"];
-        return names[Math.floor(Math.random() * names.length)] + " " + names[Math.floor(Math.random() * names.length)];
+    function generateRandomName() {
+        const firstNames = ["Alice", "Bob", "Charlie", "David", "Eve", "Frank", "Grace", "Harry", "Ivy", "Jack", "Liam", "Olivia", "Noah", "Emma", "Jackson", "Ava", "Aiden", "Sophia", "Lucas", "Isabella"];
+        const lastNames = ["Smith", "Johnson", "Williams", "Brown", "Jones", "Garcia", "Miller", "Davis", "Rodriguez", "Martinez", "Anderson", "Taylor", "Thomas", "Hernandez", "Moore", "Martin", "Jackson", "Thompson", "White", "Lopez"];
+        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+        const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+        return `${firstName} ${lastName}`;
     }
 
     function generateRandomEmail() {
-        const domains = ["example.com", "mail.net", "domain.org", "email.co"];
-        const usernames = ["user", "test", "info", "contact", "support"];
-        return usernames[Math.floor(Math.random() * usernames.length)] + Math.floor(Math.random() * 1000) + "@" + domains[Math.floor(Math.random() * domains.length)];
+        const domains = ["example.com", "mail.net", "domain.org", "email.co", "techmail.io", "web.info", "service.biz"];
+        const usernames = ["user", "test", "info", "contact", "support", "account", "help", "sales", "marketing", "admin", "service"];
+        const usernameVariations = ["", ".", "-", "_", "123"]; // Variations to make usernames a bit more diverse
+        const domainExtensions = [".com", ".net", ".org", ".io", ".info", ".biz"]; // More extension variety
+
+        const baseUsername = usernames[Math.floor(Math.random() * usernames.length)];
+        const usernameExtension = usernameVariations[Math.floor(Math.random() * usernameVariations.length)];
+        const fullUsername = baseUsername + usernameExtension + Math.floor(Math.random() * 1000); // Added number at end
+
+        const domainName = domains[Math.floor(Math.random() * domains.length)];
+        const domainExtension = domainExtensions[Math.floor(Math.random() * domainExtensions.length)];
+        const fullDomain = domainName + domainExtension;
+
+        return `${fullUsername}@${fullDomain}`;
     }
 
-    function redactPhoneNumber(phoneNumber) { // Kept, though might need adjustment if phone numbers are not always phone-like
+    function redactPhoneNumber(phoneNumber) {
         if (!phoneNumber) return "";
-        return "REDACTED"; // Redact entire phone number
+        // Option for partial redaction - redact last 4 digits, keep first part
+        // if (phoneNumber.length > 4) {
+        //     return phoneNumber.slice(0, -4) + "XXXX";
+        // }
+        return "REDACTED"; // Redact entire phone number (default behavior as before)
     }
 
-    function fuzzNumber(numberString, fuzzFactor) { // Added fuzzFactor parameter
+    function fuzzNumber(numberString, fuzzFactor) {
         const num = parseFloat(numberString);
         if (isNaN(num)) return numberString;
 
-        const variation = num * fuzzFactor * (Math.random() - 0.5);
-        return (num + variation).toFixed(2);
+        const variationType = Math.random(); // Introduce different types of variation
+        let variation = 0;
+
+        if (variationType < 0.5) { // 50% chance: percentage variation (as before, but slightly enhanced range)
+            variation = num * fuzzFactor * (Math.random() * 2 - 1); // Range -fuzzFactor to +fuzzFactor
+        } else if (variationType < 0.8) { // 30% chance: fixed amount variation (small amount)
+            variation = (Math.random() * 2 - 1) * fuzzFactor * 10; // +/- up to 10 * fuzzFactor
+        } else { // 20% chance: replace with near zero or a small integer
+            variation = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 5) * (Math.random() < 0.5 ? 1 : -1); // 0 or small int +/-
+        }
+
+        return (num + variation).toFixed(2); // Keep to 2 decimal places for consistency
     }
 
-    function fuzzDate(dateString, dayVariationDays) { // Added dayVariationDays parameter
+    function fuzzDate(dateString, dayVariationDays) {
         if (!dateString) return "";
         const date = new Date(dateString);
         if (isNaN(date)) return dateString;
 
-        const dayVariation = Math.floor(Math.random() * (dayVariationDays * 2 + 1)) - dayVariationDays; // +/- dayVariationDays
-        date.setDate(date.getDate() + dayVariation);
+        const variationType = Math.random();
+        let dateVariation = 0;
+
+        if (variationType < 0.7) { // 70% chance: day variation (as before)
+            dateVariation = Math.floor(Math.random() * (dayVariationDays * 2 + 1)) - dayVariationDays;
+        } else if (variationType < 0.9) { // 20% chance: month variation (smaller range)
+            dateVariation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1 month variation
+            date.setMonth(date.getMonth() + dateVariation);
+            dateVariation = 0; // Reset day variation after month change
+        } else { // 10% chance: year variation (small range)
+            dateVariation = Math.floor(Math.random() * 3) - 1; // -1, 0, or 1 year variation
+            date.setFullYear(date.getFullYear() + dateVariation);
+            dateVariation = 0; // Reset day variation after year change
+        }
+
+        if (variationType < 0.7) { // Apply day variation only for the most common case to avoid compounding changes
+            date.setDate(date.getDate() + dateVariation);
+        }
+
         return date.toISOString().slice(0, 10);
     }
 
@@ -243,47 +292,100 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!url) return "";
         try {
             const urlObj = new URL(url);
-            const pathSegments = urlObj.pathname.split('/');
-            const fuzzedPathSegments = pathSegments.map(segment => fuzzStringLight(segment, parseFloat(stringLightFuzzProbabilityInput.value))); // Pass light prob
-            urlObj.pathname = fuzzedPathSegments.join('/');
-            urlObj.search = '?fuzzed=' + Math.random().toString(36).substring(7); // Add a random query parameter
+            const fuzzPart = Math.random();
+
+            if (fuzzPart < 0.3) { // 30% chance: Fuzz path
+                const pathSegments = urlObj.pathname.split('/');
+                const fuzzedPathSegments = pathSegments.map(segment => fuzzStringLight(segment, parseFloat(stringLightFuzzProbabilityInput.value)));
+                urlObj.pathname = fuzzedPathSegments.join('/');
+            } else if (fuzzPart < 0.6) { // 30% chance: Fuzz domain (subtle typo)
+                let domain = urlObj.hostname;
+                if (domain.length > 3) {
+                    const indexToFuzz = Math.floor(Math.random() * (domain.length - 1));
+                    domain = domain.substring(0, indexToFuzz) + String.fromCharCode(domain.charCodeAt(indexToFuzz) + (Math.random() < 0.5 ? 1 : -1)) + domain.substring(indexToFuzz + 1);
+                    urlObj.hostname = domain;
+                }
+            } else if (fuzzPart < 0.8) { // 20% chance: Add/modify query parameter
+                urlObj.searchParams.set('fuzzed', Math.random().toString(36).substring(7) + (urlObj.searchParams.has('fuzzed') ? "_modified" : ""));
+            } else { // 20% chance:  Slightly alter protocol (http vs https)
+                if (urlObj.protocol === 'http:') {
+                    urlObj.protocol = 'https:';
+                } else if (urlObj.protocol === 'https:') {
+                    urlObj.protocol = 'http:';
+                }
+            }
             return urlObj.toString();
         } catch (e) {
-            return fuzzStringLight(url, parseFloat(stringLightFuzzProbabilityInput.value)); // Pass light prob
+            return fuzzStringLight(url, parseFloat(stringLightFuzzProbabilityInput.value)); // Fallback to string fuzzing
         }
     }
 
     function fuzzEmail(email) {
         if (!email) return "";
         const parts = email.split('@');
-        if (parts.length !== 2) return fuzzStringLight(email, parseFloat(stringLightFuzzProbabilityInput.value)); // Pass light prob
+        if (parts.length !== 2) return fuzzStringLight(email, parseFloat(stringLightFuzzProbabilityInput.value));
 
-        const username = parts[0];
-        const domain = parts[1];
+        let username = parts[0];
+        let domain = parts[1];
+        const fuzzPart = Math.random();
 
-        const fuzzedUsername = fuzzStringLight(username, parseFloat(stringLightFuzzProbabilityInput.value)); // Pass light prob
-        const domainParts = domain.split('.');
-        const fuzzedDomainParts = domainParts.map(part => fuzzStringLight(part, parseFloat(stringLightFuzzProbabilityInput.value))); // Pass light prob
-        const fuzzedDomain = fuzzedDomainParts.join('.');
+        if (fuzzPart < 0.4) { // 40% chance: Fuzz username
+            username = fuzzStringLight(username, parseFloat(stringLightFuzzProbabilityInput.value));
+        } else if (fuzzPart < 0.8) { // 40% chance: Fuzz domain part
+            const domainParts = domain.split('.');
+            const fuzzedDomainParts = domainParts.map(part => fuzzStringLight(part, parseFloat(stringLightFuzzProbabilityInput.value)));
+            domain = fuzzedDomainParts.join('.');
+        } else { // 20% chance: Add subdomain or change TLD subtly
+            if (Math.random() < 0.5) { // Add subdomain
+                const subdomain = fuzzStringLight("sub", parseFloat(stringLightFuzzProbabilityInput.value));
+                domain = `${subdomain}.${domain}`;
+            } else { // Slight TLD change (e.g., .com to .co)
+                const domainParts = domain.split('.');
+                if (domainParts.length > 1) {
+                    domainParts[domainParts.length - 1] = fuzzStringLight(domainParts[domainParts.length - 1], 0.3); // Less aggressive fuzz on TLD
+                    domain = domainParts.join('.');
+                }
+            }
+        }
 
-        return fuzzedUsername + "@" + fuzzedDomain;
+        return `${username}@${domain}`;
     }
 
 
-    function fuzzString(text, fuzzProbability) { // Added fuzzProbability parameter
+    function fuzzString(text, fuzzProbability) {
         if (!text) return "";
         let fuzzed = "";
+        const operations = ['insert', 'delete', 'substitute', 'transpose', 'repeat'];
         for (let i = 0; i < text.length; i++) {
             if (Math.random() < fuzzProbability) {
-                const charCode = text.charCodeAt(i);
-                if (charCode >= 97 && charCode <= 122) {
-                    fuzzed += String.fromCharCode(97 + Math.floor(Math.random() * 26));
-                } else if (charCode >= 65 && charCode <= 90) {
-                    fuzzed += String.fromCharCode(65 + Math.floor(Math.random() * 26));
-                } else if (charCode >= 48 && charCode <= 57) {
-                    fuzzed += String.fromCharCode(48 + Math.floor(Math.random() * 10));
-                } else {
-                    fuzzed += text[i];
+                const operationType = operations[Math.floor(Math.random() * operations.length)]; // Random operation
+
+                switch (operationType) {
+                    case 'insert':
+                        fuzzed += getRandomChar(); // Insert a random character
+                        fuzzed += text[i];
+                        break;
+                    case 'delete':
+                        // Skip current character (delete it)
+                        break;
+                    case 'substitute':
+                        fuzzed += getRandomChar(); // Substitute with a random character
+                        break;
+                    case 'transpose':
+                        if (i < text.length - 1 && Math.random() < 0.5) { // Swap with next character
+                            fuzzed += text[i+1];
+                            fuzzed += text[i];
+                            i++; // Skip next character as it's already processed
+                        } else {
+                            fuzzed += text[i]; // No swap, just keep current char
+                        }
+                        break;
+                    case 'repeat':
+                        fuzzed += text[i];
+                        fuzzed += text[i]; // Repeat current character
+                        break;
+                    default:
+                        fuzzed += text[i]; // No fuzzing
                 }
             } else {
                 fuzzed += text[i];
@@ -292,28 +394,53 @@ document.addEventListener('DOMContentLoaded', () => {
         return fuzzed;
     }
 
-    function fuzzStringLight(text, fuzzProbability) { // Added fuzzProbability parameter
-        if (!text) return "";
-        if (text.length <= 3) return fuzzString(text, fuzzProbability); // Fuzz short strings with general fuzz
+    function fuzzStringLight(text, fuzzProbability) {
+         if (!text) return "";
+        if (text.length <= 3) return fuzzString(text, fuzzProbability); // Fallback for short strings
 
         let fuzzed = "";
+        const lightOperations = ['substitute', 'transpose', 'caseFlip']; // Lighter operations
         for (let i = 0; i < text.length; i++) {
             if (Math.random() < fuzzProbability) {
-                const charCode = text.charCodeAt(i);
-                if (charCode >= 97 && charCode <= 122) {
-                    fuzzed += String.fromCharCode(97 + Math.floor(Math.random() * 26));
-                } else if (charCode >= 65 && charCode <= 90) {
-                    fuzzed += String.fromCharCode(65 + Math.floor(Math.random() * 26));
-                } else if (charCode >= 48 && charCode <= 57) {
-                    fuzzed += String.fromCharCode(48 + Math.floor(Math.random() * 10));
-                } else {
-                    fuzzed += text[i];
+                const operationType = lightOperations[Math.floor(Math.random() * lightOperations.length)];
+
+                switch (operationType) {
+                    case 'substitute':
+                        fuzzed += getRandomChar();
+                        break;
+                    case 'transpose':
+                        if (i < text.length - 1 && Math.random() < 0.3) { // Less frequent transpose for light fuzz
+                            fuzzed += text[i+1];
+                            fuzzed += text[i];
+                            i++;
+                        } else {
+                            fuzzed += text[i];
+                        }
+                        break;
+                    case 'caseFlip':
+                        const char = text[i];
+                        if (char === char.toLowerCase() && char.toUpperCase() !== char) {
+                            fuzzed += char.toUpperCase();
+                        } else if (char === char.toUpperCase() && char.toLowerCase() !== char) {
+                            fuzzed += char.toLowerCase();
+                        } else {
+                            fuzzed += char; // Keep as is if not a letter or already mixed case
+                        }
+                        break;
+                    default:
+                        fuzzed += text[i];
                 }
             } else {
                 fuzzed += text[i];
             }
         }
         return fuzzed;
+    }
+
+    // --- Helper function to get a random character (alphanumeric) ---
+    function getRandomChar() {
+        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        return chars.charAt(Math.floor(Math.random() * chars.length));
     }
 
 
@@ -428,5 +555,31 @@ document.addEventListener('DOMContentLoaded', () => {
             redactStringsLightCheckbox.checked = redactStringsLight;
         }
     }
+
+    // --- Theme Toggle Functionality ---
+    function setTheme(themeName) {
+        if (themeName === 'dark') {
+            body.classList.add('dark-theme');
+            themeIcon.classList.remove('fa-sun');
+            themeIcon.classList.add('fa-moon'); // Moon icon for dark theme
+        } else {
+            body.classList.remove('dark-theme');
+            themeIcon.classList.remove('fa-moon');
+            themeIcon.classList.add('fa-sun'); // Sun icon for light theme
+        }
+        localStorage.setItem('theme', themeName); // Save theme preference
+    }
+
+    themeToggleBtn.addEventListener('click', () => {
+        if (body.classList.contains('dark-theme')) {
+            setTheme('light');
+        } else {
+            setTheme('dark');
+        }
+    });
+
+    // Immediately check and set the theme on page load
+    const currentTheme = localStorage.getItem('theme') || 'light'; // Default to light
+    setTheme(currentTheme);
 
 });
