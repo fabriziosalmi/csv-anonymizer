@@ -1,4 +1,4 @@
-# Static CSV Anonymizer
+# CSV Anonymizer
 
 [![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
