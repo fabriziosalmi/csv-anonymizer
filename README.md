@@ -4,7 +4,7 @@
 
 Anonymize your CSV files directly in your browser with this static web application. Preserve valuable data structure while intelligently fuzzing or redacting sensitive information to protect privacy.
 
-**Try it now:** [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)
+### Try it now: **[https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)**
 
 ---
 
