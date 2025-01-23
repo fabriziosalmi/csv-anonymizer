@@ -1,6 +1,8 @@
 # Static CSV Fuzzer & Anonymizer
 
-This is a static web application built with HTML, CSS, and JavaScript that allows you to fuzz and anonymize CSV files directly in your browser.  It preserves the structure of your CSV while altering the data inside to protect sensitive information.  This tool is designed to be used without requiring you to share your data with a server, ensuring privacy and eliminating the need for NDAs to share fuzzed CSVs.
+This is a static web application built with HTML, CSS, and JavaScript that allows you to fuzz and anonymize CSV files directly in your browser. 
+
+Try it here: [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)
 
 **Key Features:**
 
@@ -11,13 +13,12 @@ This is a static web application built with HTML, CSS, and JavaScript that allow
     *   **Presets:** Choose from pre-defined fuzzing levels (Mild, Moderate, Aggressive).
     *   **Advanced Configuration:**  Fine-tune fuzzing parameters for numbers, dates, and strings (fuzz factor, date variation, string fuzz probabilities).
     *   **Redaction Options:**  Optionally redact numbers, dates, and strings by replacing them with "REDACTED".
-*   **Data Preview:**  Provides a preview of the first few rows of the fuzzed CSV data in a table format before download.
 *   **Sleek and Easy-to-Use UI:**  Built with Bootstrap for a responsive and clean user interface.
 *   **No Server-Side Component:**  Static application means no server setup or data transmission to external servers.
 
 **How to Use:**
 
-1.  **Open `index.html` in your web browser.**  Simply double-click the `index.html` file or open it via "File > Open" in your browser.
+1.  **Open [this page](https://fabriziosalmi.github.io/csv-anonymizer/) or clone/downoad the repo . Simply double-click the `index.html` file or open it via "File > Open" in your browser.
 2.  **Upload your CSV file:** Click the "Choose File" button and select the CSV file you want to fuzz and anonymize.  Only `.csv` files are accepted.
 3.  **Configure Fuzzing Options (Optional):**
     *   **Presets:**  Use the "Choose a Fuzzing Preset" dropdown to select a pre-defined fuzzing level (Mild, Moderate, Aggressive, or "Custom" for manual settings).
