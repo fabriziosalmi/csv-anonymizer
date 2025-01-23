@@ -2,7 +2,7 @@
 
 [![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
-**Anonymize your CSV files directly in your browser with this static web application. Preserve data structure while fuzzing or redacting sensitive information.
+Anonymize your CSV files directly in your browser with this static web application. Preserve data structure while fuzzing or redacting sensitive information.
 
 **Try it now:** [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)
 
