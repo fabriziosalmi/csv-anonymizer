@@ -21,8 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const stringLightFuzzProbabilityOutput = document.getElementById('stringLightFuzzProbabilityOutput');
 
     // Theme Toggle Elements
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
-    const themeIcon = document.getElementById('theme-icon');
     const body = document.body;
 
     let csvData = null; // Store parsed CSV data
