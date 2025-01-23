@@ -9,54 +9,89 @@
     --btn-primary-text: #fff;
     --btn-success-bg: #28a745;
     --btn-success-text: #fff;
+    --btn-secondary-bg: #6c757d; /* Added secondary button color */
+    --btn-secondary-text: #fff; /* Added secondary button text color */
     --card-bg: #ffffff;
     --card-text: #343a40;
     --theme-icon-color: #000;
-    --theme-toggle-hover-bg: rgba(0, 0, 0, 0.03); /* Even subtler hover background for light theme */
+    --theme-toggle-hover-bg: rgba(0, 0, 0, 0.03);
+    --border-color: #dee2e6; /* Added border color variable */
+    --input-bg: #fff;       /* Input background */
+    --input-text-color: #495057; /* Input text color */
+    --input-border-color: #ced4da; /* Input border color */
+    --input-focus-border-color: #80bdff; /* Input focus border color */
+    --input-focus-shadow: rgba(0, 123, 255, 0.25); /* Input focus shadow */
+    --form-text-muted: #6c757d; /* Muted form text color */
 }
 
 body {
     background-color: var(--body-bg);
     color: var(--text-color);
-    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother body transition */
+    font-family: 'Nunito', sans-serif; /* Example: Modern, readable font */
+    line-height: 1.6;
+    transition: background-color 0.5s ease, color 0.5s ease;
+    padding-bottom: 20px; /* Add some padding at the bottom */
 }
 
 .jumbotron {
     background-color: var(--jumbotron-bg);
-    border-radius: 0.75rem; /* Slightly more rounded jumbotron corners */
-    padding: 2.25rem; /* Slightly increased padding */
+    border-radius: 1rem; /* More rounded jumbotron corners */
+    padding: 2.5rem; /* Slightly increased padding */
     color: var(--text-color);
     position: relative;
-    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother jumbotron transition */
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.04); /* Very subtle shadow for depth */
+    transition: background-color 0.5s ease, color 0.5s ease;
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.05); /* Slightly stronger shadow for more depth */
+    border: 1px solid var(--border-color); /* Add a subtle border */
 }
 
-.card-body {
-    background-color: var(--card-bg);
-    color: var(--card-text);
-    border-radius: 0.5rem; /* Rounded card corners */
-    transition: background-color 0.5s ease, color 0.5s ease; /* Slightly smoother card transition */
-    box-shadow: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.03); /* Even subtler card shadow */
+.display-4 {
+    font-weight: 700; /* Make the title bolder */
+    margin-bottom: 1.25rem; /* More space under the title */
 }
 
+.lead {
+    font-size: 1.1rem; /* Slightly larger lead text */
+    font-weight: 500; /* Slightly bolder lead text */
+    margin-bottom: 2rem; /* More space under lead text */
+}
+
+hr.my-4 {
+    border-top: 1px solid var(--border-color);
+    opacity: 0.5; /* Slightly less opaque hr */
+}
+
+.form-control-file {
+    margin-bottom: 1rem;
+}
+
+.btn-primary, .btn-secondary, .btn-success {
+    border-radius: 0.5rem; /* More rounded button corners */
+    padding: 0.75rem 1.5rem; /* Adjust button padding */
+    font-weight: 600; /* Bolder button text */
+    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease; /* Add transform for button press effect */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08); /* Add a small base shadow to buttons */
+}
 
 .btn-primary {
     background-color: var(--btn-primary-bg);
     border-color: var(--btn-primary-bg);
     color: var(--btn-primary-text);
-    border-radius: 0.3rem; /* Slightly rounded button corners */
-    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; /* Button transition with shadow */
-    box-shadow: 0 0 0 rgba(0, 123, 255, 0.5); /* No initial shadow */
 }
 
 .btn-primary:hover {
     background-color: #0056b3;
     border-color: #0056b3;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5); /* Subtle shadow on hover */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.4), 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15); /* Enhanced hover shadow */
+    transform: translateY(-2px); /* Slight lift on hover */
+}
+
+.btn-primary:active {
+    transform: translateY(1px); /* Push down effect on click */
+    box-shadow: 0 0.05rem 0.1rem rgba(0, 0, 0, 0.15); /* Reduced shadow when active */
 }
 
 .btn-primary:focus, .btn-primary.focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5); /* Keep shadow on focus */
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.5), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08); /* Keep shadow on focus, less intense outer ring */
 }
 
 
@@ -64,77 +99,256 @@ body {
     background-color: var(--btn-success-bg);
     border-color: var(--btn-success-bg);
     color: var(--btn-success-text);
-    border-radius: 0.3rem;
-    transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease; /* Button transition with shadow */
-    box-shadow: 0 0 0 rgba(40, 167, 69, 0.5); /* No initial shadow */
 }
 
 .btn-success:hover {
     background-color: #1e7e34;
     border-color: #1e7e34;
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5); /* Subtle shadow on hover */
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.4), 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
 }
+
+.btn-success:active {
+    transform: translateY(1px);
+    box-shadow: 0 0.05rem 0.1rem rgba(0, 0, 0, 0.15);
+}
+
 
 .btn-success:focus, .btn-success.focus {
-    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5); /* Keep shadow on focus */
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.5), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08);
+}
+
+.btn-secondary {
+    background-color: var(--btn-secondary-bg);
+    border-color: var(--btn-secondary-bg);
+    color: var(--btn-secondary-text);
+}
+
+.btn-secondary:hover {
+    background-color: #545b62; /* Darken on hover */
+    border-color: #545b62;
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.4), 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.btn-secondary:active {
+    transform: translateY(1px);
+    box-shadow: 0 0.05rem 0.1rem rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary:focus, .btn-secondary.focus {
+    box-shadow: 0 0 0 0.2rem rgba(108, 117, 125, 0.5), 0 0.125rem 0.25rem rgba(0, 0, 0, 0.08);
 }
 
 
-/* Dark Theme Styles */
-body.dark-theme {
-    --body-bg: #121212;
-    --text-color: #ffffff;
-    --jumbotron-bg: #212529;
-    --btn-primary-bg: #00bcd4;
-    --btn-primary-text: #000;
-    --btn-success-bg: #4caf50;
-    --btn-success-text: #000;
-    --card-bg: #343a40;
-    --card-text: #ffffff;
-    --theme-icon-color: #fff;
-    --theme-toggle-hover-bg: rgba(255, 255, 255, 0.03); /* Even subtler hover background for dark theme */
-}
-
-.dark-theme .jumbotron {
-    background-color: var(--jumbotron-bg);
-    color: var(--text-color);
-    box-shadow: 0 0.125rem 0.25rem rgba(255, 255, 255, 0.04); /* Subtle white shadow in dark mode */
-}
-
-.dark-theme .card-body {
+.card-body {
     background-color: var(--card-bg);
     color: var(--card-text);
-    box-shadow: 0 0.0625rem 0.125rem rgba(255, 255, 255, 0.03); /* Even subtler white card shadow */
+    border-radius: 0.75rem; /* More rounded card corners */
+    padding: 1.5rem; /* Adjusted card padding */
+    transition: background-color 0.5s ease, color 0.5s ease;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.05); /* Slightly stronger card shadow */
+    border: 1px solid var(--border-color); /* Add subtle card border */
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.form-group {
+    margin-bottom: 1.5rem; /* Increased spacing between form groups */
+}
+
+.form-group label {
+    font-weight: 500;
+    display: block; /* Ensure labels are above inputs */
+    margin-bottom: 0.5rem; /* Space between label and input */
+    color: var(--text-color); /* Ensure label text color is consistent */
+}
+
+.form-control,
+.form-control-range,
+.form-select { /* In case you use select elements later */
+    display: block;
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--input-text-color);
+    background-color: var(--input-bg);
+    background-clip: padding-box;
+    border: 1px solid var(--input-border-color);
+    border-radius: 0.5rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    -webkit-appearance: none; /* Remove default browser styling */
+    -moz-appearance: none;    /* Remove default browser styling */
+    appearance: none;        /* Remove default browser styling */
+}
+
+.form-control:focus,
+.form-control-range:focus,
+.form-select:focus {
+    color: var(--input-text-color);
+    background-color: var(--input-bg);
+    border-color: var(--input-focus-border-color);
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem var(--input-focus-shadow);
 }
 
 
-.dark-theme .btn-primary {
-    background-color: var(--btn-primary-bg);
-    border-color: var(--btn-primary-bg);
-    color: var(--btn-primary-text);
-    box-shadow: 0 0 0 rgba(0, 188, 212, 0.5); /* No initial shadow */
+.form-check {
+    padding-left: 1.25rem; /* Adjust padding to align text with checkbox */
+    margin-bottom: 1rem;
 }
 
-.dark-theme .btn-primary:hover {
-    box-shadow: 0 0 0 0.2rem rgba(0, 188, 212, 0.5); /* Subtle shadow on hover */
+.form-check-input {
+    margin-top: 0.3rem; /* Adjust vertical alignment of checkbox */
 }
 
-.dark-theme .btn-primary:focus, .dark-theme .btn-primary.focus {
-    box-shadow: 0 0 0 0.2rem rgba(0, 188, 212, 0.5); /* Keep shadow on focus */
+.form-check-label {
+    color: var(--text-color); /* Consistent checkbox label color */
 }
 
 
-.dark-theme .btn-success {
-    background-color: var(--btn-success-bg);
-    border-color: var(--btn-success-bg);
-    color: var(--btn-success-text);
-    box-shadow: 0 0 0 rgba(76, 175, 80, 0.5); /* No initial shadow */
+.form-text {
+    font-size: 0.875rem;
+    color: var(--form-text-muted);
+    margin-top: 0.25rem;
+    display: block; /* Ensure form-text is below input */
 }
 
-.dark-theme .btn-success:hover {
-    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5); /* Subtle shadow on hover */
+#numberFuzzFactorOutput,
+#stringFuzzProbabilityOutput,
+#stringLightFuzzProbabilityOutput {
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-weight: 500;
+    color: var(--text-color); /* Output text color */
 }
 
-.dark-theme .btn-success:focus, .dark-theme .btn-success.focus {
-    box-shadow: 0 0 0 0.2rem rgba(76, 175, 80, 0.5); /* Keep shadow on focus */
+
+#processingMessage {
+    margin-top: 1.5rem;
+    color: grey;
+    font-style: italic; /* Make processing message italic */
+}
+
+#downloadLinkContainer {
+    margin-top: 2rem;
+}
+
+#errorMessage {
+    margin-top: 1.5rem;
+    border-radius: 0.5rem; /* Rounded error message corners */
+    padding: 1rem; /* Padding for error message */
+}
+
+/* Range input specific styling for better appearance */
+input[type="range"] {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 0.7rem; /* Adjusted range input height */
+    background: transparent;
+    cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 0.7rem;
+    background: #dee2e6; /* Range track background */
+    border-radius: 0.5rem;
+    border: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    border: none;
+    height: 1.4rem; /* Adjusted thumb size */
+    width: 1.4rem;
+    border-radius: 50%;
+    background: var(--btn-primary-bg); /* Range thumb color */
+    margin-top: -0.35rem; /* Adjust thumb position to center on track */
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15); /* Thumb shadow */
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+    background: #0056b3; /* Darker thumb on hover */
+    transform: scale(1.1); /* Slightly enlarge thumb on hover */
+}
+
+input[type="range"]::-moz-range-track {
+    width: 100%;
+    height: 0.7rem;
+    background: #dee2e6;
+    border-radius: 0.5rem;
+    border: none;
+}
+
+input[type="range"]::-moz-range-thumb {
+    border: none;
+    height: 1.4rem;
+    width: 1.4rem;
+    border-radius: 50%;
+    background: var(--btn-primary-bg);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
+input[type="range"]::-ms-track {
+    width: 100%;
+    height: 0.7rem;
+    background: transparent;
+    border-color: transparent;
+    color: transparent;
+}
+
+input[type="range"]::-ms-fill-lower,
+input[type="range"]::-ms-fill-upper {
+    background: #dee2e6;
+    border-radius: 0.5rem;
+}
+
+input[type="range"]::-ms-thumb {
+    border: none;
+    height: 1.4rem;
+    width: 1.4rem;
+    border-radius: 50%;
+    background: var(--btn-primary-bg);
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.15);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+input[type="range"]::-ms-thumb:hover {
+    background: #0056b3;
+    transform: scale(1.1);
+}
+
+/* Deeper collapse animation */
+.collapse {
+    transition: height 0.4s ease-out, opacity 0.3s ease-in; /* Adjusted transition for smoother collapse */
+}
+
+/* Optional: Add a subtle border to the collapsible config card */
+#fuzzConfig.collapsing, #fuzzConfig.show {
+    border: 1px solid var(--border-color);
+    border-radius: 0.75rem;
+    overflow: hidden; /* Ensure rounded corners when collapsing/expanding */
+}
+
+
+small img {
+    vertical-align: middle; /* Vertically align the icon to the middle of the text line */
+    display: inline-block; /* Ensure it behaves like an inline element but with block-level properties if needed */
+    margin-left: 0.3em;   /* Add a small space between the text and the icon (adjust as needed) */
 }

@@ -15,13 +15,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const redactStringsCheckbox = document.getElementById('redactStrings');
     const stringFuzzProbabilityInput = document.getElementById('stringFuzzProbability');
     const redactStringsLightCheckbox = document.getElementById('redactStringsLight');
-    const stringLightFuzzProbabilityInput = document.getElementById('stringLightFuzzProbability');
+    const stringLightFuzzProbabilityInput = document.getElementById('stringLightFuzzProbability');  
+
     const numberFuzzFactorOutput = document.getElementById('numberFuzzFactorOutput');
     const stringFuzzProbabilityOutput = document.getElementById('stringFuzzProbabilityOutput');
     const stringLightFuzzProbabilityOutput = document.getElementById('stringLightFuzzProbabilityOutput');
-
-    // Theme Toggle Elements
-    const body = document.body;
 
     let csvData = null; // Store parsed CSV data
 
@@ -113,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Fuzzing/Anonymization Function (TYPE-AWARE - HEADER-NAME IGNORANT - WITH PRESETS & REDACTION) ---
+    // --- Fuzzing/Anonymization Function (TYPE-AWARE - HEADER-NAME AWARE - WITH PRESETS & REDACTION) ---
     function fuzzCSVData(csvObject) {
         const fuzzedData = { headers: [...csvObject.headers], data: [] }; // Copy headers
 
@@ -134,7 +132,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 let originalValue = row[header];
                 let fuzzedValue = originalValue; // Default: no change
 
-                const dataType = detectDataType(originalValue); // Detect data type - NOW HEADER-NAME IGNORANT
+                const dataType = detectDataType(originalValue, header.toLowerCase()); // Detect data type - NOW HEADER-NAME AWARE
                 console.log(`Header: ${header}, Original Value: ${originalValue}, Detected Type: ${dataType}`); // *** DEBUG LOGGING ***
 
                 switch (dataType) {
@@ -156,10 +154,32 @@ document.addEventListener('DOMContentLoaded', () => {
                         fuzzedValue = fuzzEmail(originalValue); // Using fuzzEmail now (email redaction could be added similarly)
                         break;
                     case 'phone':
-                        fuzzedValue = redactPhoneNumber(originalValue); // Phone number redaction is still fixed to "REDACTED"
+                        fuzzedValue = redactPhoneNumber(originalValue); // Phone number redaction is still fixed to "REDACTED" - Could be improved
+                        break;
+                    case 'youtube_url': // Specific case for YouTube URLs
+                        fuzzedValue = fuzzYoutubeURL(originalValue);
                         break;
                     case 'url':
                         fuzzedValue = fuzzURL(originalValue);
+                        break;
+                    case 'latitude': // Geographic data types
+                    case 'longitude':
+                        if (shouldRedactNumbers) { // Reusing number redaction for coordinates for simplicity - Could have separate setting
+                            fuzzedValue = "REDACTED";
+                        } else {
+                            fuzzedValue = fuzzGeoCoordinate(originalValue, currentNumberFuzzFactor); // Using number fuzz factor for geo-coordinates for now
+                        }
+                        break;
+                    case 'address': // Simple address fuzzing - Could be significantly improved with address parsing libraries
+                        fuzzedValue = fuzzAddress(originalValue, currentStringLightFuzzProbability);
+                        break;
+                    case 'id': // Generic ID - Light string fuzzing
+                    case 'identifier':
+                        if (shouldRedactStringsLight) {
+                            fuzzedValue = "REDACTED";
+                        } else {
+                            fuzzedValue = fuzzStringLightLengthPreserving(originalValue, currentStringLightFuzzProbability, 'alphanumeric'); // Assuming alphanumeric IDs
+                        }
                         break;
                     case 'currency': // Treat currency as number for now
                         if (shouldRedactNumbers) { // Use number redaction setting for currency too
@@ -172,14 +192,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     default: // Default to string fuzzing
                         if (shouldRedactStrings && dataType === 'string') { // Redact general strings
                             fuzzedValue = "REDACTED";
-                        } else if (shouldRedactStringsLight && dataType !== 'string') { // Redact non-strings treated as light strings (IDs?) - Might need refinement
+                        } else if (shouldRedactStringsLight && dataType !== 'string') { // Redact non-strings treated as light strings (IDs?) - Refinement might be needed here
                            fuzzedValue = "REDACTED";
                         }
                         else if (dataType === 'string') {
                             fuzzedValue = fuzzString(originalValue, currentStringFuzzProbability); // General string fuzz
                         }
                         else {
-                            fuzzedValue = fuzzStringLight(originalValue, currentStringLightFuzzProbability); // Light string fuzz
+                            fuzzedValue = fuzzStringLight(originalValue, currentStringLightFuzzProbability); // Light string fuzz for anything not explicitly typed
                         }
                         break;
                 }
@@ -191,16 +211,28 @@ document.addEventListener('DOMContentLoaded', () => {
         return fuzzedData;
     }
 
-    // --- Data Type Detection Function (HEADER-NAME IGNORANT) ---
-    function detectDataType(value) { // Removed headerLower parameter
+    // --- Data Type Detection Function (HEADER-NAME AWARE) ---
+    function detectDataType(value, headerLower) {
         if (!value) return 'string'; // Empty values are strings
 
-        if (isEmail(value)) return 'email'; // Check email format first (more specific than URL)
+        if (headerLower.includes("email") || headerLower.includes("mail")) return 'email';
+        if (headerLower.includes("youtube") && headerLower.includes("url")) return 'youtube_url'; // More specific YouTube URL detection based on header
+        if (headerLower.includes("url") || headerLower.includes("link") || headerLower.includes("web")) return 'url';
+        if (headerLower.includes("date") || headerLower.includes("time") || headerLower.includes("year") || headerLower.includes("month") || headerLower.includes("day")) return 'date';
+        if (headerLower.includes("phone") || headerLower.includes("tel") || headerLower.includes("fax")) return 'phone';
+        if (headerLower.includes("latitude") || headerLower.includes("lat")) return 'latitude';
+        if (headerLower.includes("longitude") || headerLower.includes("long") || headerLower.includes("lng")) return 'longitude';
+        if (headerLower.includes("address") || headerLower.includes("addr")) return 'address';
+        if (headerLower.includes("id") || headerLower.includes("identifier") || headerLower.includes("code") || headerLower.includes("number") || headerLower.includes("serial")) return 'id'; // Broader ID detection
+        if (headerLower.includes("price") || headerLower.includes("cost") || headerLower.includes("amount") || headerLower.includes("currency") || headerLower.includes("value")) return 'currency';
+
+
+        if (isEmail(value)) return 'email'; // Pattern-based checks as fallback, after header hints
+        if (isYoutubeURL(value)) return 'youtube_url';
         if (isURL(value)) return 'url';
         if (isDate(value)) return 'date';
         if (isNumeric(value)) return 'number';
-        // Currency detection is hard without context, let's keep it simple, if it's numeric, it could be currency too
-        // For now, we are not explicitly differentiating currency from numbers without header hints
+
 
         return 'string'; // Default to string if no other type is detected
     }
@@ -234,10 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function redactPhoneNumber(phoneNumber) {
         if (!phoneNumber) return "";
-        // Option for partial redaction - redact last 4 digits, keep first part
-        // if (phoneNumber.length > 4) {
-        //     return phoneNumber.slice(0, -4) + "XXXX";
-        // }
         return "REDACTED"; // Redact entire phone number (default behavior as before)
     }
 
@@ -294,7 +322,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (fuzzPart < 0.3) { // 30% chance: Fuzz path
                 const pathSegments = urlObj.pathname.split('/');
-                const fuzzedPathSegments = pathSegments.map(segment => fuzzStringLight(segment, parseFloat(stringLightFuzzProbabilityInput.value)));
+                const fuzzedPathSegments = pathSegments.map(segment => fuzzStringLightLengthPreserving(segment, parseFloat(stringLightFuzzProbabilityInput.value))); // Using length preserving version
                 urlObj.pathname = fuzzedPathSegments.join('/');
             } else if (fuzzPart < 0.6) { // 30% chance: Fuzz domain (subtle typo)
                 let domain = urlObj.hostname;
@@ -314,33 +342,69 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             return urlObj.toString();
         } catch (e) {
-            return fuzzStringLight(url, parseFloat(stringLightFuzzProbabilityInput.value)); // Fallback to string fuzzing
+            return fuzzStringLightLengthPreserving(url, parseFloat(stringLightFuzzProbabilityInput.value)); // Fallback to length preserving string fuzzing
+        }
+    }
+
+    function fuzzYoutubeURL(url) {
+        if (!url) return "";
+        try {
+            const urlObj = new URL(url);
+            const params = new URLSearchParams(urlObj.search);
+            const pathnameParts = urlObj.pathname.split('/');
+
+            if (urlObj.hostname === 'www.youtube.com' || urlObj.hostname === 'youtube.com' || urlObj.hostname === 'm.youtube.com' || urlObj.hostname === 'youtu.be') {
+                if (urlObj.hostname === 'youtu.be') { // youtu.be format: youtu.be/{video_id}
+                    if (pathnameParts.length > 1 && pathnameParts[1]) {
+                        const videoId = pathnameParts[1];
+                        pathnameParts[1] = fuzzStringLightLengthPreserving(videoId, 0.3, 'alphanumeric'); // Fuzz video ID, keep alphanumeric
+                    }
+                } else if (pathnameParts[1] === 'watch' && params.has('v')) { // Standard watch format: /watch?v={video_id}
+                    const videoId = params.get('v');
+                    params.set('v', fuzzStringLightLengthPreserving(videoId, 0.3, 'alphanumeric')); // Fuzz video ID, keep alphanumeric
+                } else if (pathnameParts[1] === 'channel' && pathnameParts.length > 2) { // Channel URL: /channel/{channel_id}
+                    const channelId = pathnameParts[2];
+                    pathnameParts[2] = fuzzStringLightLengthPreserving(channelId, 0.2, 'alphanumeric'); // Fuzz channel ID
+                } else if (pathnameParts[1] === 'user' && pathnameParts.length > 2) { // User URL: /user/{username}
+                    const username = pathnameParts[2];
+                    pathnameParts[2] = fuzzStringLightLengthPreserving(username, 0.2); // Fuzz username
+                } else if (pathnameParts[1] === 'c' && pathnameParts.length > 2) { // Custom channel URL: /c/{custom_name}
+                    const customName = pathnameParts[2];
+                    pathnameParts[2] = fuzzStringLightLengthPreserving(customName, 0.2); // Fuzz custom name
+                }
+                urlObj.pathname = pathnameParts.join('/');
+                urlObj.search = params.toString();
+                return urlObj.toString();
+            }
+            return fuzzURL(url); // Fallback to general URL fuzzing if not recognized as YouTube
+        } catch (e) {
+            return fuzzStringLightLengthPreserving(url, parseFloat(stringLightFuzzProbabilityInput.value)); // Fallback to string fuzzing
         }
     }
 
     function fuzzEmail(email) {
         if (!email) return "";
         const parts = email.split('@');
-        if (parts.length !== 2) return fuzzStringLight(email, parseFloat(stringLightFuzzProbabilityInput.value));
+        if (parts.length !== 2) return fuzzStringLightLengthPreserving(email, parseFloat(stringLightFuzzProbabilityInput.value));
 
         let username = parts[0];
         let domain = parts[1];
         const fuzzPart = Math.random();
 
         if (fuzzPart < 0.4) { // 40% chance: Fuzz username
-            username = fuzzStringLight(username, parseFloat(stringLightFuzzProbabilityInput.value));
+            username = fuzzStringLightLengthPreserving(username, parseFloat(stringLightFuzzProbabilityInput.value));
         } else if (fuzzPart < 0.8) { // 40% chance: Fuzz domain part
             const domainParts = domain.split('.');
-            const fuzzedDomainParts = domainParts.map(part => fuzzStringLight(part, parseFloat(stringLightFuzzProbabilityInput.value)));
+            const fuzzedDomainParts = domainParts.map(part => fuzzStringLightLengthPreserving(part, parseFloat(stringLightFuzzProbabilityInput.value)));
             domain = fuzzedDomainParts.join('.');
         } else { // 20% chance: Add subdomain or change TLD subtly
             if (Math.random() < 0.5) { // Add subdomain
-                const subdomain = fuzzStringLight("sub", parseFloat(stringLightFuzzProbabilityInput.value));
+                const subdomain = fuzzStringLightLengthPreserving("sub", parseFloat(stringLightFuzzProbabilityInput.value));
                 domain = `${subdomain}.${domain}`;
             } else { // Slight TLD change (e.g., .com to .co)
                 const domainParts = domain.split('.');
                 if (domainParts.length > 1) {
-                    domainParts[domainParts.length - 1] = fuzzStringLight(domainParts[domainParts.length - 1], 0.3); // Less aggressive fuzz on TLD
+                    domainParts[domainParts.length - 1] = fuzzStringLightLengthPreserving(domainParts[domainParts.length - 1], 0.3); // Less aggressive fuzz on TLD
                     domain = domainParts.join('.');
                 }
             }
@@ -348,7 +412,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return `${username}@${domain}`;
     }
-
 
     function fuzzString(text, fuzzProbability) {
         if (!text) return "";
@@ -435,35 +498,89 @@ document.addEventListener('DOMContentLoaded', () => {
         return fuzzed;
     }
 
-    // --- Helper function to get a random character (alphanumeric) ---
+    function fuzzStringLightLengthPreserving(text, fuzzProbability, charSetType = 'alphanumeric') {
+        if (!text) return "";
+        let fuzzed = "";
+        const charSet = getCharset(charSetType);
+
+        for (let i = 0; i < text.length; i++) {
+            if (Math.random() < fuzzProbability) {
+                fuzzed += charSet.charAt(Math.floor(Math.random() * charSet.length)); // Substitute with random char from charset
+            } else {
+                fuzzed += text[i];
+            }
+        }
+        return fuzzed;
+    }
+
+    function getCharset(charSetType) {
+        switch (charSetType) {
+            case 'alphanumeric':
+                return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            case 'numeric':
+                return "0123456789";
+            case 'alphabetic':
+                return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+            case 'hex':
+                return "0123456789abcdef";
+            default: // default to alphanumeric
+                return "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        }
+    }
+
     function getRandomChar() {
-        const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        return chars.charAt(Math.floor(Math.random() * chars.length));
+        return getCharset('alphanumeric').charAt(Math.floor(Math.random() * getCharset('alphanumeric').length));
+    }
+
+
+    // --- New Fuzzing Functions for extended types ---
+
+    function fuzzGeoCoordinate(coordinateString, fuzzFactor) {
+        const coord = parseFloat(coordinateString);
+        if (isNaN(coord)) return coordinateString;
+        // Simple fuzzing: add a small random variation, keeping it within reasonable bounds might be needed for real-world coordinates
+        const variation = fuzzFactor * (Math.random() * 2 - 1); // Variation based on fuzzFactor
+        return (coord + variation).toFixed(6); // Keep precision, adjust as needed
+    }
+
+    function fuzzAddress(addressString, fuzzProbability) {
+        if (!addressString) return "";
+        // Very basic address fuzzing -  more sophisticated methods would involve address parsing and rule-based modification
+        // For now, just apply light string fuzzing to the address as a whole.
+        return fuzzStringLight(addressString, fuzzProbability);
     }
 
 
     // --- Type Checking Functions (updated for header-name ignorance, added isEmail) ---
-
     function isNumeric(value) {
-        return !isNaN(parseFloat(value)) && isFinite(value);
+        return !isNaN(value) && !isNaN(parseFloat(value));
     }
 
     function isDate(value) {
-        return !isNaN(new Date(value)); // Basic date check - might need more robust date parsing
+        const date = new Date(value);
+        return !isNaN(date) && date.toString() !== 'Invalid Date';
     }
 
     function isURL(value) {
         try {
             new URL(value);
             return true;
-        } catch (_) {
+        } catch {
             return false;
         }
     }
 
-    function isEmail(value) { // Simple email regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        return emailRegex.test(value);
+    function isYoutubeURL(value) {
+        try {
+            const url = new URL(value);
+            return url.hostname === 'www.youtube.com' || url.hostname === 'youtube.com' || url.hostname === 'm.youtube.com' || url.hostname === 'youtu.be';
+        } catch {
+            return false;
+        }
+    }
+
+    function isEmail(value) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
     }
 
 
