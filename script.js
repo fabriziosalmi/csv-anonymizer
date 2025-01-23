@@ -554,30 +554,4 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- Theme Toggle Functionality ---
-    function setTheme(themeName) {
-        if (themeName === 'dark') {
-            body.classList.add('dark-theme');
-            themeIcon.classList.remove('fa-sun');
-            themeIcon.classList.add('fa-moon'); // Moon icon for dark theme
-        } else {
-            body.classList.remove('dark-theme');
-            themeIcon.classList.remove('fa-moon');
-            themeIcon.classList.add('fa-sun'); // Sun icon for light theme
-        }
-        localStorage.setItem('theme', themeName); // Save theme preference
-    }
-
-    themeToggleBtn.addEventListener('click', () => {
-        if (body.classList.contains('dark-theme')) {
-            setTheme('light');
-        } else {
-            setTheme('dark');
-        }
-    });
-
-    // Immediately check and set the theme on page load
-    const currentTheme = localStorage.getItem('theme') || 'light'; // Default to light
-    setTheme(currentTheme);
-
 });
