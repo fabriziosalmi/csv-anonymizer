@@ -1,49 +1,64 @@
-# Static CSV Fuzzer & Anonymizer
+# Static CSV Anonymizer - Fuzz and Redact CSV Data in your Browser
 
-This is a static web application built with HTML, CSS, and JavaScript that allows you to fuzz and anonymize CSV files directly in your browser. 
+[![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
-Try it here: [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)
+**Anonymize your CSV files directly in your browser with this static web application. Preserve data structure while fuzzing or redacting sensitive information, ensuring privacy and eliminating the need for NDAs.**
 
-**Key Features:**
+**Try it now:** [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/)
 
-*   **Client-Side Processing:** All CSV processing happens directly in your web browser. Your data never leaves your computer.
-*   **Structure Preservation:** The tool maintains the original CSV structure (headers and columns) while modifying the data.
-*   **Type-Aware Fuzzing:**  Attempts to detect data types (numbers, dates, emails, URLs, strings) and applies appropriate fuzzing or redaction techniques.
-*   **Configurable Fuzziness:**
-    *   **Presets:** Choose from pre-defined fuzzing levels (Mild, Moderate, Aggressive).
-    *   **Advanced Configuration:**  Fine-tune fuzzing parameters for numbers, dates, and strings (fuzz factor, date variation, string fuzz probabilities).
-    *   **Redaction Options:**  Optionally redact numbers, dates, and strings by replacing them with "REDACTED".
-*   **Sleek and Easy-to-Use UI:**  Built with Bootstrap for a responsive and clean user interface.
-*   **No Server-Side Component:**  Static application means no server setup or data transmission to external servers.
+---
 
-**How to Use:**
+## ✨ Key Features
 
-1.  **Open [this page](https://fabriziosalmi.github.io/csv-anonymizer/) or clone/downoad the repo . Simply double-click the `index.html` file or open it via "File > Open" in your browser.
-2.  **Upload your CSV file:** Click the "Choose File" button and select the CSV file you want to fuzz and anonymize.  Only `.csv` files are accepted.
-3.  **Configure Fuzzing Options (Optional):**
-    *   **Presets:**  Use the "Choose a Fuzzing Preset" dropdown to select a pre-defined fuzzing level (Mild, Moderate, Aggressive, or "Custom" for manual settings).
-    *   **Advanced Settings:** Expand the "Advanced Fuzzing Configuration (Optional)" section to adjust parameters for numbers, dates, and strings.
-        *   **Redaction Checkboxes:**  Check the boxes to redact numbers, dates, and strings instead of fuzzing.
-        *   **Fuzz Factor/Probability Sliders:**  Use the range sliders to control the intensity of fuzzing for numbers and the probability of character changes for strings.
-        *   **Date Variation Range:** Set the number of days to vary dates by (plus or minus).
-4.  **Click "Fuzz & Anonymize":**  Once you have uploaded your CSV and configured your settings (or used a preset), click the "Fuzz & Anonymize" button.
-5.  **View Data Preview:**  After processing, a "Fuzzed Data Preview" section will appear, displaying the first few rows of your anonymized data in a table. Review this to ensure the fuzzing is as expected.
-6.  **Download Fuzzed CSV:** Click the "Download Fuzzed CSV" button to download the anonymized CSV file to your computer. The downloaded file will be named `fuzzed_data.csv`.
-7.  **Share Safely:** You can now share the downloaded `fuzzed_data.csv` file without needing to worry about exposing the original sensitive data.
+*   **🔒 Client-Side Processing:** Your data stays completely private! All CSV processing happens directly in your browser, never leaving your computer.
+*   **<0xF0><0x9F><0xAA><0x97> Structure Preservation:** Maintains the original CSV structure (headers and columns) while intelligently modifying the data content.
+*   **<0xF0><0x9F><0xA7><0x90> Type-Aware Anonymization:** Detects data types (numbers, dates, emails, URLs, strings) and applies relevant fuzzing or redaction techniques for optimal anonymization.
+*   **<0xF0><0x9F><0x9B><0xBC> Configurable Anonymization:**
+    *   **Presets:** Quickly choose from pre-defined anonymization levels (Mild, Moderate, Aggressive) for common use cases.
+    *   **Advanced Settings:** Fine-tune anonymization parameters for different data types:
+        *   **Fuzzing:** Control the intensity of fuzzing for numbers and the probability of character changes for strings.
+        *   **Date Variation:**  Set the range for date shifting.
+        *   **Redaction:**  Optionally redact numbers, dates, and strings by replacing them with `REDACTED`.
+*   **<0xF0><0x9F><0x91><0x8D> User-Friendly Interface:** Built with Bootstrap for a clean, responsive, and intuitive user experience.
+*   **<0xE2><0x9B><0xAE> No Server-Side Dependency:**  A purely static application, meaning no server setup, external data transmission, or privacy concerns.
 
-**Customization:**
+## 🚀 How to Use
 
-*   **Fuzzing Parameters:**  Experiment with the "Advanced Fuzzing Configuration" options (fuzz factors, probabilities, date variation) to adjust the level of anonymization to your specific needs.
-*   **Presets:** The "Fuzzing Preset" dropdown provides quick access to common fuzzing levels.  Select "Custom" to manually adjust all settings.
-*   **Redaction:** Use the redaction checkboxes to completely replace sensitive data types with "REDACTED" for stronger anonymization.
+1.  **Access the Anonymizer:**
+    *   **Open in Browser:**  Go to [https://fabriziosalmi.github.io/csv-anonymizer/](https://fabriziosalmi.github.io/csv-anonymizer/) directly in your browser.
+    *   **Run Locally:** Alternatively, [download or clone the repository](<link to your repo if public>) and open `index.html` by double-clicking or via "File > Open" in your browser.
+2.  **Upload CSV File:** Click "Choose File" and select the `.csv` file you wish to anonymize.
+3.  **Configure Anonymization (Optional but Recommended):**
+    *   **Choose a Preset:**  For quick setup, select "Mild," "Moderate," or "Aggressive" from the "Fuzzing Preset" dropdown.
+    *   **Customize Settings:** For granular control, expand "Advanced Fuzzing Configuration" to:
+        *   **Redact Data:** Check the redaction boxes for Numbers, Dates, and Strings to replace values with `REDACTED`.
+        *   **Adjust Fuzzing Intensity:** Use sliders and number inputs to fine-tune fuzzing parameters for each data type.
+4.  **Process CSV:** Click the "Fuzz & Anonymize" button.
+5.  **Review Data Preview:** Examine the "Fuzzed Data Preview" table that appears. This shows the first few rows of your anonymized CSV, allowing you to verify the results before downloading.
+6.  **Download Anonymized CSV:** Click "Download Fuzzed CSV" to save the anonymized file (`fuzzed_data.csv`) to your computer.
+7.  **Share with Confidence:**  The downloaded CSV is now anonymized and safe to share without exposing original sensitive information.
 
-**Limitations:**
+## ⚙️ Customization Options
 
-*   **Client-Side Performance:** Processing very large CSV files (hundreds of MBs or GBs) may be slow in the browser. For extremely large files, consider server-side solutions or splitting the file.
-*   **Heuristic Type Detection:** Data type detection is based on heuristics (patterns and simple checks). It might not be perfect and could misclassify some data, especially in complex or inconsistent CSVs.
-*   **Basic Fuzzing Techniques:** The anonymization techniques used are primarily fuzzing and redaction.  For highly sensitive data or scenarios requiring very strong anonymization, more advanced techniques like differential privacy, k-anonymity, or pseudonymization (which are more complex to implement client-side) are not included.
-*   **No Column-Specific Configuration (Yet):**  Currently, fuzzing settings are applied globally based on detected data types.  Column-specific configuration is not implemented.
+*   **Presets:**  Quickly apply different levels of anonymization using the "Fuzzing Preset" dropdown. "Custom" allows for manual adjustments.
+*   **Advanced Configuration:** Tailor the anonymization precisely to your needs by adjusting fuzz factors, date variation, string fuzz probabilities, and redaction settings within the "Advanced Fuzzing Configuration" section.
+*   **Redaction vs. Fuzzing:** Choose between fuzzing (slightly modifying data) or redaction (replacing data with `REDACTED`) for different data types based on your sensitivity requirements.
 
-**License:**
+## ⚠️ Limitations
+
+*   **Performance on Very Large Files:** Client-side processing might be slow for extremely large CSV files (hundreds of MBs or GBs). Consider splitting large files or server-side solutions for optimal performance in such cases.
+*   **Heuristic Data Type Detection:** Data type detection relies on pattern recognition and may not be foolproof. Complex or inconsistent CSV formats might lead to occasional misclassifications. Always review the preview.
+*   **Basic Anonymization Techniques:** This tool uses fuzzing and redaction, which are effective for many use cases. However, for highly sensitive data requiring robust anonymization against advanced re-identification attacks, consider more sophisticated techniques beyond the scope of this client-side tool.
+*   **No Column-Specific Rules (Yet):**  Anonymization settings are currently applied globally based on detected data types. Column-level configuration is a potential future enhancement.
+
+## 📜 License
 
 This project is open-source and available under the [AGPL3] license.
+
+## <0xF0><0x9F><0xA6><0x80> Contribute
+
+Contributions and feedback are welcome! Feel free to fork the repository and submit pull requests for improvements or new features.
+
+---
+
+**Made with ❤️ for privacy-preserving data sharing.**
