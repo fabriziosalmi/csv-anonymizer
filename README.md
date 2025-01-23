@@ -1,4 +1,4 @@
-# Static CSV Anonymizer - Fuzz and Redact CSV Data in your Browser
+# Static CSV Anonymizer
 
 [![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
