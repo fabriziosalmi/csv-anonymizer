@@ -1,0 +1,26 @@
+/* Optional custom styles to enhance or override Bootstrap */
+.jumbotron {
+    background-color: #f8f9fa; /* Light grey background for jumbotron */
+    border-radius: 0.5rem;
+    padding: 2rem;
+}
+
+.btn-primary {
+    background-color: #007bff; /* Bootstrap primary color */
+    border-color: #007bff;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #0056b3;
+}
+
+.btn-success {
+    background-color: #28a745; /* Bootstrap success color */
+    border-color: #28a745;
+}
+
+.btn-success:hover {
+    background-color: #1e7e34;
+    border-color: #1e7e34;
+}

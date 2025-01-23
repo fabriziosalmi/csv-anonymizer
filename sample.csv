@@ -1,0 +1,6 @@
+Name,Email,Phone,Address,City,Date of Birth,Salary
+"John Doe","john.doe@example.com","123-456-7890","123 Main St","Anytown","1985-03-15","60000"
+"Jane Smith","jane.smith@mail.net","987-654-3210","456 Oak Ave","Otherville","1992-11-22","75000"
+"Peter Jones","peter.jones@domain.org","555-1212","789 Pine Ln","Somecity","1978-07-08","90000"
+"Alice Wonderland","alice.wonder@email.co","(555) 555-1111","777 Dream Rd","Wonderland","2000-01-01","45000"
+"Bob The Builder","bob.builder@build.com","+1-800-BUILDER","1 Construction Way","Fixitville","1970-05-10","80000"
