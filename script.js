@@ -112,6 +112,30 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- Fuzzing/Anonymization Function (TYPE-AWARE - HEADER-NAME AWARE - WITH PRESETS & REDACTION) ---
+    /**
+     * Anonymizes CSV data by fuzzing or redacting values based on their data type and user configuration.
+     * @param {Object} csvObject - The CSV data object containing headers and data arrays
+     * @param {string[]} csvObject.headers - Array of column headers
+     * @param {Object[]} csvObject.data - Array of data objects where each object represents a row
+     * @returns {Object} A new object with the same structure as input but with fuzzed/redacted data
+     * @description
+     * This function processes CSV data and applies different fuzzing/redaction strategies based on:
+     * - Data type detection (numbers, dates, emails, phones, URLs, coordinates, addresses, IDs, strings)
+     * - User-configured fuzzing factors from UI inputs (number variation, date range, string modification probability)
+     * - User-selected redaction options (numbers, dates, strings, light strings)
+     * 
+     * The function preserves the original structure while anonymizing sensitive data through:
+     * - Number fuzzing with configurable variation
+     * - Date fuzzing within specified day ranges
+     * - Email anonymization
+     * - Phone number redaction
+     * - URL fuzzing (including special handling for YouTube URLs)
+     * - Geographic coordinate fuzzing
+     * - Address fuzzing
+     * - ID/identifier light fuzzing
+     * - Currency handling
+     * - String fuzzing with configurable probability
+     */
     function fuzzCSVData(csvObject) {
         const fuzzedData = { headers: [...csvObject.headers], data: [] }; // Copy headers
 
