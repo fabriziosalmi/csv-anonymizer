@@ -4,6 +4,10 @@ Anonymize your CSV files directly in your browser with this static web applicati
 
 [![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
+## Screenshots
+
+![screenshot1](https://github.com/fabriziosalmi/csv-anonymizer/blob/main/screenshot_1.png?raw=true)
+
 ---
 
 ## ✨ Key Features
