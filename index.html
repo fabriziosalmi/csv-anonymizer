@@ -3,10 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CSV Fuzzer/Anonymizer</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <meta name="description" content="Secure client-side CSV anonymization tool with intelligent data type detection and configurable fuzzing options">
+    <meta name="keywords" content="csv, anonymizer, privacy, gdpr, data protection, fuzzing">
+    <meta name="author" content="Fabrizio Salmi">
+    <meta name="robots" content="index, follow">
+    <title>CSV Anonymizer - Secure Data Privacy Tool</title>
+    
+    <!-- Updated to Bootstrap 5.3.2 for security and features -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" 
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" 
+          integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" 
+          crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
 
@@ -16,25 +25,41 @@
             <h1 style="font-size: 2em;" class="display-4">CSV Anonymizer</h1>
             <p class="lead">Upload a CSV file to fuzz and anonymize its data with configurable options and presets.</p>
             <hr class="my-4">
-            <div class="form-group">
-                <input type="file" class="form-control-file" id="csvFile" accept=".csv">
+            <div class="mb-3">
+                <label for="csvFile" class="form-label">Select CSV File:</label>
+                <input type="file" class="form-control" id="csvFile" accept=".csv,text/csv,application/csv" 
+                       aria-describedby="csvFileHelp">
+                <div id="csvFileHelp" class="form-text">
+                    <i class="fas fa-info-circle"></i> Maximum file size: 50MB. Supported formats: .csv
+                </div>
+                <div id="fileSizeInfo" class="form-text text-muted mt-1" style="display: none;">
+                    <i class="fas fa-file-alt"></i> File size: <span id="fileSize">0</span>
+                </div>
             </div>
-            <button id="fuzzButton" class="btn btn-primary btn-lg" disabled>Fuzz & Anonymize</button>
+            <button id="fuzzButton" class="btn btn-primary btn-lg" disabled>
+                <i class="fas fa-magic"></i> Fuzz & Anonymize
+            </button>
+            <button id="previewButton" class="btn btn-outline-info btn-lg ms-2" disabled style="display: none;">
+                <i class="fas fa-eye"></i> Preview Results
+            </button>
 
             <div class="mt-4">
-                <div class="form-group">
-                    <label for="fuzzPreset">Fuzzing Preset:</label>
-                    <select class="form-control" id="fuzzPreset">
-                        <option value="custom">Custom</option>
-                        <option value="mild">Mild Anonymization</option>
-                        <option value="moderate">Moderate Anonymization</option>
-                        <option value="aggressive">Aggressive Anonymization</option>
+                <div class="mb-3">
+                    <label for="fuzzPreset" class="form-label">Fuzzing Preset:</label>
+                    <select class="form-select" id="fuzzPreset" aria-describedby="presetHelp">
+                        <option value="custom">Custom Configuration</option>
+                        <option value="mild">🟢 Mild Anonymization (Light fuzzing, preserve utility)</option>
+                        <option value="moderate">🟡 Moderate Anonymization (Balanced approach)</option>
+                        <option value="aggressive">🔴 Aggressive Anonymization (Maximum privacy)</option>
                     </select>
-                    <small class="form-text text-muted">Choose a preset combination of fuzzing options.</small>
+                    <div id="presetHelp" class="form-text">
+                        <i class="fas fa-lightbulb"></i> Choose a preset for quick setup or select "Custom" for full control.
+                    </div>
                 </div>
 
-                <button class="btn btn-secondary" type="button" data-toggle="collapse" data-target="#fuzzConfig" aria-expanded="false" aria-controls="fuzzConfig">
-                    Advanced Fuzzing Configuration (Optional)
+                <button class="btn btn-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#fuzzConfig" 
+                        aria-expanded="false" aria-controls="fuzzConfig">
+                    <i class="fas fa-cogs"></i> Advanced Fuzzing Configuration (Optional)
                 </button>
                 <div class="collapse" id="fuzzConfig">
                     <div class="card card-body mt-3">
@@ -84,11 +109,52 @@
             </div>
 
 
-            <div id="processingMessage" class="mt-3" style="display: none; color: grey;">Processing... Please wait.</div>
-            <div id="downloadLinkContainer" class="mt-4" style="display: none;">
-                <a id="downloadLink" class="btn btn-success btn-lg" download="fuzzed_data.csv">Download Fuzzed CSV</a>
+            <div id="processingMessage" class="mt-3" style="display: none;">
+                <div class="d-flex align-items-center text-primary">
+                    <div class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></div>
+                    <span>Processing your CSV file... Please wait.</span>
+                </div>
+                <div class="progress mt-2" style="display: none;" id="progressContainer">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                         role="progressbar" id="progressBar" style="width: 0%"></div>
+                </div>
             </div>
-            <div id="errorMessage" class="mt-3 alert alert-danger" style="display: none;"></div>
+            
+            <div id="previewContainer" class="mt-4" style="display: none;">
+                <div class="card">
+                    <div class="card-header">
+                        <h5><i class="fas fa-table"></i> Data Preview</h5>
+                        <small class="text-muted">First 5 rows of your anonymized data</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-striped" id="previewTable"></table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="downloadLinkContainer" class="mt-4" style="display: none;">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    <a id="downloadLink" class="btn btn-success btn-lg" download="anonymized_data.csv">
+                        <i class="fas fa-download"></i> Download Anonymized CSV
+                    </a>
+                    <button id="resetButton" class="btn btn-outline-secondary">
+                        <i class="fas fa-redo"></i> Process Another File
+                    </button>
+                </div>
+                <div class="mt-2">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt"></i> Your data was processed locally in your browser. 
+                        No data was sent to any server.
+                    </small>
+                </div>
+            </div>
+            
+            <div id="errorMessage" class="mt-3 alert alert-danger" style="display: none;" role="alert">
+                <i class="fas fa-exclamation-triangle"></i> 
+                <span id="errorText"></span>
+            </div>
             <div id="info" style="margin-top: 15px;">
                 <small>This is a static HTML application running on your browser. If you prefer to use it offline just <a href="https://github.com/fabriziosalmi/csv-anonymizer/archive/refs/heads/main.zip">download</a> the application, 
                     extract csv-anonymizer-main.zip somewhere and open the <b>index.html</b> file with your browser. Source code available on
@@ -100,9 +166,10 @@
         </div>
     </div>
 
+    <!-- Bootstrap 5.3.2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" 
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" 
+            crossorigin="anonymous"></script>
     <script src="script.js"></script>
-    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
-    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
 </body>
 </html>

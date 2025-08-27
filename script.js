@@ -1,10 +1,34 @@
+/**
+ * CSV Anonymizer - Enhanced Version
+ * Secure client-side CSV anonymization with improved parsing and error handling
+ * @author Fabrizio Salmi
+ * @version 1.2.0
+ */
+
+// Constants
+const CONFIG = {
+    MAX_FILE_SIZE: 50 * 1024 * 1024, // 50MB
+    PREVIEW_ROWS: 5,
+    SUPPORTED_MIME_TYPES: ['text/csv', 'application/csv', 'text/plain'],
+    CHUNK_SIZE: 1000, // Process in chunks for large files
+};
+
 document.addEventListener('DOMContentLoaded', () => {
+    // DOM Elements
     const csvFile = document.getElementById('csvFile');
     const fuzzButton = document.getElementById('fuzzButton');
+    const previewButton = document.getElementById('previewButton');
+    const resetButton = document.getElementById('resetButton');
     const downloadLinkContainer = document.getElementById('downloadLinkContainer');
     const downloadLink = document.getElementById('downloadLink');
     const processingMessage = document.getElementById('processingMessage');
+    const progressContainer = document.getElementById('progressContainer');
+    const progressBar = document.getElementById('progressBar');
     const errorMessage = document.getElementById('errorMessage');
+    const errorText = document.getElementById('errorText');
+    const previewContainer = document.getElementById('previewContainer');
+    const fileSizeInfo = document.getElementById('fileSizeInfo');
+    const fileSize = document.getElementById('fileSize');
 
     // Configuration UI Elements
     const fuzzPresetInput = document.getElementById('fuzzPreset');
@@ -21,63 +45,455 @@ document.addEventListener('DOMContentLoaded', () => {
     const stringFuzzProbabilityOutput = document.getElementById('stringFuzzProbabilityOutput');
     const stringLightFuzzProbabilityOutput = document.getElementById('stringLightFuzzProbabilityOutput');
 
-    let csvData = null; // Store parsed CSV data
-
-    csvFile.addEventListener('change', (event) => {
-        resetUI(); // Reset UI on new file selection
+    // Global state
+    let csvData = null;
+    let processedData = null;
+    
+    /**
+     * File input change handler with enhanced validation
+     */
+    csvFile.addEventListener('change', async (event) => {
+        resetUI();
         const file = event.target.files[0];
-        if (file && file.type === 'text/csv') {
-            fuzzButton.disabled = false; // Enable the fuzz button
-            const reader = new FileReader();
-
-            reader.onload = (e) => {
-                const csvText = e.target.result;
-                csvData = parseCSV(csvText); // Parse CSV data
-                console.log("CSV Parsed:", csvData); // Optional: Check in console
-            };
-
-            reader.onerror = () => {
-                showError("Error reading CSV file.");
-                fuzzButton.disabled = true;
-            };
-
-            reader.readAsText(file);
-        } else {
-            showError("Please select a valid CSV file.");
+        
+        if (!file) {
+            fuzzButton.disabled = true;
+            return;
+        }
+        
+        // Enhanced file validation
+        const validationResult = validateFile(file);
+        if (!validationResult.valid) {
+            showError(validationResult.error);
+            fuzzButton.disabled = true;
+            return;
+        }
+        
+        // Show file size info
+        fileSize.textContent = formatFileSize(file.size);
+        fileSizeInfo.style.display = 'block';
+        
+        try {
+            showProcessing('Reading file...');
+            const csvText = await readFileAsync(file);
+            csvData = parseCSVEnhanced(csvText);
+            
+            hideProcessing();
+            fuzzButton.disabled = false;
+            
+            // Show success message
+            showSuccess(`File loaded successfully! Found ${csvData.data.length} rows with ${csvData.headers.length} columns.`);
+            
+        } catch (error) {
+            console.error('File processing error:', error);
+            showError(`Error processing file: ${error.message}`);
             fuzzButton.disabled = true;
         }
     });
 
-    fuzzButton.addEventListener('click', () => {
-        if (csvData) {
-            processingMessage.style.display = 'block'; // Show processing message
-            errorMessage.style.display = 'none'; // Hide any previous errors
-
-            setTimeout(() => { // Simulate processing time (remove in production if not needed)
-                const fuzzedData = fuzzCSVData(csvData); // Apply fuzzing
-                console.log("Fuzzed Data:", fuzzedData); // Optional: Check fuzzed data
-
-                const fuzzedCsvText = convertToCSV(fuzzedData); // Convert back to CSV text
-                downloadLink.href = createDownloadLink(fuzzedCsvText); // Create download link
-                downloadLinkContainer.style.display = 'block'; // Show download link container
-                processingMessage.style.display = 'none'; // Hide processing message
-            }, 100); // 100ms delay - adjust or remove
-        } else {
-            showError("No CSV data to fuzz. Please upload a CSV file.");
+    /**
+     * Main fuzz button click handler with progress tracking
+     */
+    fuzzButton.addEventListener('click', async () => {
+        if (!csvData) {
+            showError("No CSV data to process. Please upload a CSV file.");
+            return;
+        }
+        
+        try {
+            showProcessing('Anonymizing your data...');
+            progressContainer.style.display = 'block';
+            
+            // Process data with progress updates
+            processedData = await processCSVDataAsync(csvData);
+            
+            hideProcessing();
+            
+            // Show preview and download options
+            showPreview(processedData);
+            prepareDownload(processedData);
+            
+            // Show success message
+            showSuccess(`Successfully anonymized ${processedData.data.length} rows of data!`);
+            
+        } catch (error) {
+            console.error('Processing error:', error);
+            hideProcessing();
+            showError(`Error during anonymization: ${error.message}`);
         }
     });
+    
+    /**
+     * Reset button handler
+     */
+    resetButton.addEventListener('click', () => {
+        csvFile.value = '';
+        resetUI();
+        csvData = null;
+        processedData = null;
+        fuzzButton.disabled = true;
+    });
 
+    /**
+     * UI Management Functions
+     */
     function resetUI() {
         downloadLinkContainer.style.display = 'none';
+        previewContainer.style.display = 'none';
         errorMessage.style.display = 'none';
         processingMessage.style.display = 'none';
+        progressContainer.style.display = 'none';
+        fileSizeInfo.style.display = 'none';
+        progressBar.style.width = '0%';
     }
-
+    
     function showError(message) {
-        errorMessage.textContent = message;
+        errorText.textContent = message;
         errorMessage.style.display = 'block';
+        hideProcessing();
+    }
+    
+    function showSuccess(message) {
+        // Create success alert if it doesn't exist
+        let successAlert = document.getElementById('successMessage');
+        if (!successAlert) {
+            successAlert = document.createElement('div');
+            successAlert.id = 'successMessage';
+            successAlert.className = 'mt-3 alert alert-success';
+            successAlert.setAttribute('role', 'alert');
+            successAlert.innerHTML = '<i class="fas fa-check-circle"></i> <span id="successText"></span>';
+            errorMessage.parentNode.insertBefore(successAlert, errorMessage);
+        }
+        document.getElementById('successText').textContent = message;
+        successAlert.style.display = 'block';
+        errorMessage.style.display = 'none';
+        
+        // Auto-hide after 5 seconds
+        setTimeout(() => {
+            successAlert.style.display = 'none';
+        }, 5000);
+    }
+    
+    function showProcessing(message = 'Processing...') {
+        processingMessage.querySelector('span').textContent = message;
+        processingMessage.style.display = 'block';
+        errorMessage.style.display = 'none';
+    }
+    
+    function hideProcessing() {
         processingMessage.style.display = 'none';
-        downloadLinkContainer.style.display = 'none';
+        progressContainer.style.display = 'none';
+    }
+    
+    function updateProgress(percentage) {
+        progressBar.style.width = `${percentage}%`;
+        progressBar.setAttribute('aria-valuenow', percentage);
+    }
+    
+    /**
+     * Enhanced file validation with security checks
+     */
+    function validateFile(file) {
+        // Check file size
+        if (file.size > CONFIG.MAX_FILE_SIZE) {
+            return {
+                valid: false,
+                error: `File size (${formatFileSize(file.size)}) exceeds maximum limit of ${formatFileSize(CONFIG.MAX_FILE_SIZE)}`
+            };
+        }
+        
+        // Check file type
+        const fileExtension = file.name.split('.').pop().toLowerCase();
+        if (fileExtension !== 'csv') {
+            return {
+                valid: false,
+                error: 'Only CSV files are supported. Please select a .csv file.'
+            };
+        }
+        
+        // Check MIME type (some browsers might not set it correctly for CSV)
+        if (file.type && !CONFIG.SUPPORTED_MIME_TYPES.includes(file.type)) {
+            console.warn('Unexpected MIME type:', file.type);
+            // Don't fail validation for this, as CSV files often have inconsistent MIME types
+        }
+        
+        return { valid: true };
+    }
+    
+    /**
+     * Format file size in human readable format
+     */
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+    
+    /**
+     * Read file asynchronously
+     */
+    function readFileAsync(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            
+            reader.onload = (e) => {
+                resolve(e.target.result);
+            };
+            
+            reader.onerror = () => {
+                reject(new Error('Failed to read the file'));
+            };
+            
+            reader.readAsText(file, 'UTF-8');
+        });
+    }
+    
+    /**
+     * Enhanced CSV parser that handles quoted fields and edge cases
+     */
+    function parseCSVEnhanced(csvText, delimiter = ',', quote = '"') {
+        if (!csvText || csvText.trim() === '') {
+            throw new Error('CSV file is empty or contains no data');
+        }
+        
+        const lines = csvText.trim().split('\n');
+        if (lines.length < 2) {
+            throw new Error('CSV file must contain at least a header row and one data row');
+        }
+        
+        // Parse header
+        const headers = parseCSVLine(lines[0], delimiter, quote);
+        if (headers.length === 0) {
+            throw new Error('CSV file has no columns in the header row');
+        }
+        
+        // Parse data rows
+        const data = [];
+        const errors = [];
+        
+        for (let i = 1; i < lines.length; i++) {
+            const lineNumber = i + 1;
+            try {
+                const values = parseCSVLine(lines[i], delimiter, quote);
+                if (values.length === 0 && lines[i].trim() === '') {
+                    continue; // Skip empty lines
+                }
+                
+                const row = {};
+                for (let j = 0; j < headers.length; j++) {
+                    row[headers[j]] = j < values.length ? values[j] : '';
+                }
+                data.push(row);
+                
+            } catch (error) {
+                errors.push(`Line ${lineNumber}: ${error.message}`);
+                if (errors.length > 10) { // Limit error collection
+                    errors.push('... (more errors truncated)');
+                    break;
+                }
+            }
+        }
+        
+        if (errors.length > 0) {
+            console.warn('CSV parsing warnings:', errors);
+        }
+        
+        if (data.length === 0) {
+            throw new Error('No valid data rows found in CSV file');
+        }
+        
+        return { headers, data, warnings: errors };
+    }
+    
+    /**
+     * Parse a single CSV line handling quotes and escaping
+     */
+    function parseCSVLine(line, delimiter = ',', quote = '"') {
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        let i = 0;
+        
+        while (i < line.length) {
+            const char = line[i];
+            const nextChar = i < line.length - 1 ? line[i + 1] : null;
+            
+            if (char === quote) {
+                if (inQuotes && nextChar === quote) {
+                    // Escaped quote ("" inside quoted field)
+                    current += quote;
+                    i += 2;
+                    continue;
+                } else {
+                    // Toggle quote state
+                    inQuotes = !inQuotes;
+                }
+            } else if (char === delimiter && !inQuotes) {
+                // End of field
+                values.push(current.trim());
+                current = '';
+            } else {
+                current += char;
+            }
+            i++;
+        }
+        
+        // Add the last field
+        values.push(current.trim());
+        
+        return values;
+    }
+    
+    /**
+     * Process CSV data asynchronously with progress updates
+     */
+    async function processCSVDataAsync(csvObject) {
+        const totalRows = csvObject.data.length;
+        const chunkSize = Math.min(CONFIG.CHUNK_SIZE, Math.ceil(totalRows / 10));
+        const fuzzedData = { headers: [...csvObject.headers], data: [] };
+        
+        for (let i = 0; i < totalRows; i += chunkSize) {
+            const chunk = csvObject.data.slice(i, i + chunkSize);
+            const processedChunk = await processChunk(chunk, csvObject.headers);
+            fuzzedData.data.push(...processedChunk);
+            
+            // Update progress
+            const progress = Math.min(100, Math.round(((i + chunkSize) / totalRows) * 100));
+            updateProgress(progress);
+            
+            // Allow UI to update
+            await new Promise(resolve => setTimeout(resolve, 1));
+        }
+        
+        return fuzzedData;
+    }
+    
+    /**
+     * Process a chunk of CSV data
+     */
+    async function processChunk(chunk, headers) {
+        const processedChunk = [];
+        
+        // Get configuration values
+        const config = {
+            numberFuzzFactor: parseFloat(numberFuzzFactorInput.value),
+            dateVariationDays: parseInt(dateVariationDaysInput.value, 10),
+            stringFuzzProbability: parseFloat(stringFuzzProbabilityInput.value),
+            stringLightFuzzProbability: parseFloat(stringLightFuzzProbabilityInput.value),
+            redactNumbers: redactNumbersCheckbox.checked,
+            redactDates: redactDatesCheckbox.checked,
+            redactStrings: redactStringsCheckbox.checked,
+            redactStringsLight: redactStringsLightCheckbox.checked
+        };
+        
+        for (const row of chunk) {
+            const fuzzedRow = {};
+            for (const header of headers) {
+                const originalValue = row[header];
+                fuzzedRow[header] = anonymizeValue(originalValue, header, config);
+            }
+            processedChunk.push(fuzzedRow);
+        }
+        
+        return processedChunk;
+    }
+    
+    /**
+     * Anonymize a single value based on its type and configuration
+     */
+    function anonymizeValue(value, header, config) {
+        if (!value) return value;
+        
+        const dataType = detectDataType(value, header.toLowerCase());
+        
+        switch (dataType) {
+            case 'number':
+                return config.redactNumbers ? "REDACTED" : fuzzNumber(value, config.numberFuzzFactor);
+            case 'date':
+                return config.redactDates ? "REDACTED" : fuzzDate(value, config.dateVariationDays);
+            case 'email':
+                return fuzzEmail(value);
+            case 'phone':
+                return "REDACTED"; // Always redact phone numbers for privacy
+            case 'youtube_url':
+                return fuzzYoutubeURL(value);
+            case 'url':
+                return fuzzURL(value);
+            case 'latitude':
+            case 'longitude':
+                return config.redactNumbers ? "REDACTED" : fuzzGeoCoordinate(value, config.numberFuzzFactor);
+            case 'address':
+                return fuzzAddress(value, config.stringLightFuzzProbability);
+            case 'id':
+            case 'identifier':
+                return config.redactStringsLight ? "REDACTED" : 
+                       fuzzStringLightLengthPreserving(value, config.stringLightFuzzProbability, 'alphanumeric');
+            case 'currency':
+                return config.redactNumbers ? "REDACTED" : fuzzNumber(value, config.numberFuzzFactor);
+            case 'string':
+            default:
+                if (dataType === 'string' && config.redactStrings) {
+                    return "REDACTED";
+                } else if (dataType === 'string') {
+                    return fuzzString(value, config.stringFuzzProbability);
+                } else {
+                    return config.redactStringsLight ? "REDACTED" : 
+                           fuzzStringLight(value, config.stringLightFuzzProbability);
+                }
+        }
+    }
+    
+    /**
+     * Show preview of processed data
+     */
+    function showPreview(processedData) {
+        const previewTable = document.getElementById('previewTable');
+        const previewRows = Math.min(CONFIG.PREVIEW_ROWS, processedData.data.length);
+        
+        let tableHTML = '<thead><tr>';
+        processedData.headers.forEach(header => {
+            tableHTML += `<th scope="col">${escapeHtml(header)}</th>`;
+        });
+        tableHTML += '</tr></thead><tbody>';
+        
+        for (let i = 0; i < previewRows; i++) {
+            const row = processedData.data[i];
+            tableHTML += '<tr>';
+            processedData.headers.forEach(header => {
+                const value = row[header] || '';
+                tableHTML += `<td>${escapeHtml(String(value))}</td>`;
+            });
+            tableHTML += '</tr>';
+        }
+        
+        tableHTML += '</tbody>';
+        previewTable.innerHTML = tableHTML;
+        previewContainer.style.display = 'block';
+    }
+    
+    /**
+     * Prepare download link for processed data
+     */
+    function prepareDownload(processedData) {
+        const csvText = convertToCSV(processedData);
+        downloadLink.href = createDownloadLink(csvText);
+        
+        // Set filename with timestamp
+        const timestamp = new Date().toISOString().slice(0, 19).replace(/[:\-T]/g, '');
+        downloadLink.download = `anonymized_data_${timestamp}.csv`;
+        
+        downloadLinkContainer.style.display = 'block';
+    }
+    
+    /**
+     * Escape HTML to prevent XSS in preview
+     */
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
 

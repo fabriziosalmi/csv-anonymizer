@@ -1,0 +1,34 @@
+{
+  "name": "csv-anonymizer",
+  "version": "1.2.0",
+  "description": "A client-side CSV anonymization tool with intelligent data type detection and configurable fuzzing options",
+  "main": "index.html",
+  "scripts": {
+    "serve": "npx http-server -p 8080 -c-1",
+    "start": "npm run serve",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "csv",
+    "anonymizer",
+    "privacy",
+    "data-protection",
+    "gdpr",
+    "fuzzing",
+    "client-side",
+    "static"
+  ],
+  "author": "Fabrizio Salmi",
+  "license": "AGPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/fabriziosalmi/csv-anonymizer.git"
+  },
+  "homepage": "https://fabriziosalmi.github.io/csv-anonymizer/",
+  "bugs": {
+    "url": "https://github.com/fabriziosalmi/csv-anonymizer/issues"
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
