@@ -4,6 +4,32 @@ Anonymize your CSV files directly in your browser with this static web applicati
 
 [![Try it online](https://img.shields.io/badge/Try%20it%20online-here-brightgreen)](https://fabriziosalmi.github.io/csv-anonymizer/)
 
+## 🗂️ Project Overview
+
+CSV Anonymizer is a **100% client-side, serverless** web application built with vanilla JavaScript (ES2020+) and Bootstrap 5. Its purpose is to let individuals and organisations anonymize CSV datasets—replacing or fuzzing personally identifiable information (PII)—without ever uploading the data to a third-party server.
+
+Key design goals:
+- **Privacy-first**: all processing happens inside the user's browser; no data leaves the device.
+- **Type-aware anonymization**: the tool detects data types (numbers, dates, e-mails, URLs, phone numbers, geographic coordinates, addresses, identifiers, and free-text strings) and applies the most appropriate fuzzing or redaction strategy.
+- **Configurable**: three preset anonymization levels (Mild / Moderate / Aggressive) plus a fully customisable Advanced mode.
+- **Integrity-verifiable**: SHA-256 checksums of both the original and anonymized files are displayed so that downstream consumers can verify output integrity.
+
+## 🏗️ Architecture
+
+```mermaid
+flowchart LR
+    A([User selects CSV file]) --> B[File validation\nsize · extension · MIME type]
+    B --> C[Read file text\nFileReader API]
+    C --> D[Compute input SHA-256\nWeb Crypto API]
+    C --> E[Parse CSV\nRFC 4180-compliant parser]
+    E --> F[Detect data types\nper column value + header hint]
+    F --> G[Apply fuzzing / redaction\nchunked async processing]
+    G --> H[Serialise output CSV]
+    H --> I[Compute output SHA-256\nWeb Crypto API]
+    H --> J([User downloads\nanonymized_data_*.csv])
+    I --> K([Display checksums\nfor integrity audit])
+```
+
 ## Screenshots
 
 ![screenshot1](https://github.com/fabriziosalmi/csv-anonymizer/blob/main/screenshot_1.png?raw=true)
@@ -69,15 +95,58 @@ Anonymize your CSV files directly in your browser with this static web applicati
     *   **Redaction:**  Completely removes the original data value, replacing it with `REDACTED`. This provides strong anonymization but sacrifices data utility for those specific fields. Use redaction for highly sensitive columns where revealing any variation of the original data is unacceptable.
     *   **Fuzzing:**  Modifies the original data value by introducing small, controlled random variations. Fuzzing aims to preserve the statistical properties and overall distribution of the data while making individual values less identifiable. Choose fuzzing when you need to maintain data utility for analysis and reporting but still want to anonymize the dataset.
 
-## 🤝 Contribute
+## 🔐 Security
 
-Your contributions are highly appreciated! Whether you find bugs, have feature suggestions, or want to improve the code, please feel free to contribute. Here's how you can help:
+### Security controls (aligned with OWASP ASVS v4)
 
-*   **Fork the Repository:** Create your own copy of the project on GitHub.
-*   **Make your Changes:** Implement bug fixes, new features, or improvements in your forked repository.
-*   **Submit a Pull Request:**  Once you are satisfied with your changes, submit a pull request to merge your work back into the main project.
+| Control area | Implementation |
+|---|---|
+| **Input validation** | File extension (`.csv`), MIME type, and size (≤ 50 MB) are checked before the file is read (V5). |
+| **File-path safety** | Running entirely in the browser means there are no server-side file-path operations; the `FileReader` API is sandboxed by the browser's security model. |
+| **Data masking** | Sensitive field types (phone numbers, IDs, e-mails, dates, numbers, strings) are fuzzed or fully redacted according to user-selected policy (V8 – Data Protection). |
+| **XSS prevention** | All CSV content rendered in the preview table is HTML-escaped via `textContent` assignment, not `innerHTML` with raw values (V5.3). |
+| **No data exfiltration** | The application is entirely static. There is no `fetch`/`XMLHttpRequest` call that transmits CSV data; the browser's Network tab will confirm zero outbound data requests. |
+| **Output integrity** | SHA-256 checksums of both the input and output files are computed with the browser-native **Web Crypto API** (`crypto.subtle.digest`) and displayed to the user immediately after anonymization. |
+| **No debug data leakage** | Debug `console.log` statements that previously printed original (pre-anonymization) cell values have been removed to avoid accidental PII exposure through browser DevTools. |
+| **Dependency supply-chain** | Bootstrap and Font Awesome CDN resources are loaded with `integrity` (SRI) hashes and `crossorigin="anonymous"`, preventing tampered asset injection (V14.2). |
 
-For feature requests or bug reports, please open an issue on the [GitHub repository](<link to your repo if public>).
+### Verifying output integrity
+
+After downloading `anonymized_data_*.csv`, re-compute the SHA-256 hash locally and compare it against the **Output SHA-256** shown in the application:
+
+```bash
+# Linux / macOS
+sha256sum anonymized_data_*.csv
+
+# macOS (alternative)
+shasum -a 256 anonymized_data_*.csv
+
+# Windows PowerShell
+Get-FileHash anonymized_data_*.csv -Algorithm SHA256
+```
+
+## 🤝 Contributing
+
+Contributions are very welcome! Please follow these guidelines:
+
+1. **Fork** the repository and create a feature branch (`git checkout -b feature/my-improvement`).
+2. Make your changes in `script.js`, `index.html`, or `styles.css`.
+3. Ensure the application still works correctly by opening `index.html` in a browser and running a test anonymization.
+4. Keep pull requests focused — one logical change per PR.
+5. **Submit a Pull Request** against the `main` branch with a clear description of what changed and why.
+
+For bug reports and feature requests, please [open an issue](https://github.com/fabriziosalmi/csv-anonymizer/issues).
+
+### Development setup
+
+```bash
+# Serve locally (requires Node.js)
+npm install
+npm start        # starts http-server on http://localhost:8080
+
+# Or use any static file server, e.g.:
+python3 -m http.server 8080
+```
 
 ## 📜 License
 

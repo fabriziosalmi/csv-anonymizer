@@ -13,6 +13,20 @@ const CONFIG = {
     CHUNK_SIZE: 1000, // Process in chunks for large files
 };
 
+/**
+ * Compute the SHA-256 hex digest of a UTF-8 string using the Web Crypto API.
+ * @param {string} text - Input text to hash
+ * @returns {Promise<string>} Lowercase hex-encoded SHA-256 digest
+ */
+async function computeSHA256(text) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(text);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuffer))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const csvFile = document.getElementById('csvFile');
@@ -48,6 +62,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global state
     let csvData = null;
     let processedData = null;
+    let rawCsvText = null;
     
     /**
      * File input change handler with enhanced validation
@@ -76,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             showProcessing('Reading file...');
             const csvText = await readFileAsync(file);
+            rawCsvText = csvText;
             csvData = parseCSVEnhanced(csvText);
             
             hideProcessing();
@@ -104,14 +120,22 @@ document.addEventListener('DOMContentLoaded', () => {
             showProcessing('Anonymizing your data...');
             progressContainer.style.display = 'block';
             
+            // Compute SHA-256 of original input for integrity audit trail
+            const inputChecksum = await computeSHA256(rawCsvText);
+
             // Process data with progress updates
             processedData = await processCSVDataAsync(csvData);
             
             hideProcessing();
+
+            // Serialise output and compute its SHA-256 checksum
+            const outputCsvText = convertToCSV(processedData);
+            const outputChecksum = await computeSHA256(outputCsvText);
             
             // Show preview and download options
             showPreview(processedData);
-            prepareDownload(processedData);
+            prepareDownload(outputCsvText);
+            showChecksums(inputChecksum, outputChecksum);
             
             // Show success message
             showSuccess(`Successfully anonymized ${processedData.data.length} rows of data!`);
@@ -131,6 +155,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetUI();
         csvData = null;
         processedData = null;
+        rawCsvText = null;
         fuzzButton.disabled = true;
     });
 
@@ -145,6 +170,8 @@ document.addEventListener('DOMContentLoaded', () => {
         progressContainer.style.display = 'none';
         fileSizeInfo.style.display = 'none';
         progressBar.style.width = '0%';
+        const checksumPanel = document.getElementById('checksumPanel');
+        if (checksumPanel) checksumPanel.style.display = 'none';
     }
     
     function showError(message) {
@@ -474,10 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     /**
-     * Prepare download link for processed data
+     * Prepare download link for processed data.
+     * @param {string} csvText - Already-serialised CSV content
      */
-    function prepareDownload(processedData) {
-        const csvText = convertToCSV(processedData);
+    function prepareDownload(csvText) {
         downloadLink.href = createDownloadLink(csvText);
         
         // Set filename with timestamp
@@ -485,6 +512,34 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadLink.download = `anonymized_data_${timestamp}.csv`;
         
         downloadLinkContainer.style.display = 'block';
+    }
+
+    /**
+     * Display SHA-256 checksums for input and output CSVs so users can
+     * maintain an integrity audit trail.
+     * @param {string} inputChecksum  - Hex SHA-256 of the original CSV
+     * @param {string} outputChecksum - Hex SHA-256 of the anonymized CSV
+     */
+    function showChecksums(inputChecksum, outputChecksum) {
+        let panel = document.getElementById('checksumPanel');
+        if (!panel) {
+            panel = document.createElement('div');
+            panel.id = 'checksumPanel';
+            panel.className = 'mt-3 alert alert-secondary';
+            panel.setAttribute('role', 'note');
+            downloadLinkContainer.parentNode.insertBefore(panel, downloadLinkContainer.nextSibling);
+        }
+
+        panel.innerHTML = `
+            <strong><i class="fas fa-fingerprint"></i> Integrity Checksums (SHA-256)</strong>
+            <table class="table table-sm mb-0 mt-2">
+                <tbody>
+                    <tr><th scope="row">Input&nbsp;SHA-256</th><td class="font-monospace small">${escapeHtml(inputChecksum)}</td></tr>
+                    <tr><th scope="row">Output&nbsp;SHA-256</th><td class="font-monospace small">${escapeHtml(outputChecksum)}</td></tr>
+                </tbody>
+            </table>
+            <small class="text-muted">Verify the output checksum after downloading to confirm file integrity.</small>`;
+        panel.style.display = 'block';
     }
     
     /**
@@ -573,7 +628,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 let fuzzedValue = originalValue; // Default: no change
 
                 const dataType = detectDataType(originalValue, header.toLowerCase()); // Detect data type - NOW HEADER-NAME AWARE
-                console.log(`Header: ${header}, Original Value: ${originalValue}, Detected Type: ${dataType}`); // *** DEBUG LOGGING ***
 
                 switch (dataType) {
                     case 'number':
@@ -643,7 +697,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                         break;
                 }
-                console.log(`Header: ${header}, Fuzzed Value: ${fuzzedValue}`); // *** DEBUG LOGGING ***
                 fuzzedRow[header] = fuzzedValue;
             }
             fuzzedData.data.push(fuzzedRow);
