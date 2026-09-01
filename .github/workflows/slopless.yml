@@ -26,7 +26,7 @@ jobs:
       # upstream repository not to change under us.
       - name: Run slopless
         continue-on-error: true
-        uses: fabriziosalmi/slopless@a71e5a179a3ecf40da9d91c361e2abed7c69945a # v1.4.3
+        uses: fabriziosalmi/slopless@f8d0f6667e6be05513bd4273df183626273a9b8e # v1.4.5
         with:
           # vendor/ holds Bootstrap and Font Awesome. slopless skips minified
           # output on its own, and this keeps it from reading it at all.
