@@ -472,7 +472,8 @@ document.addEventListener('DOMContentLoaded', () => {
             const row = processedData.data[i];
             const tr = body.insertRow();
             processedData.headers.forEach(header => {
-                tr.insertCell().textContent = String(row[header] || '');
+                // ?? rather than ||: a cell holding 0 or false is a value, not a gap.
+                tr.insertCell().textContent = String(row[header] ?? '');
             });
         }
         
