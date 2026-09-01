@@ -1,7 +1,7 @@
 # Static analysis for AI-slop patterns: https://github.com/fabriziosalmi/slopless
 #
-# Trial run. Findings go to the Security tab and do NOT fail the build, so the
-# rules have to earn their place here before they can block anything.
+# The trial is over: the errors it found are fixed, so errors now fail the build.
+# Warnings still only report. Findings go to the Security tab either way.
 name: slopless
 
 on:
@@ -25,8 +25,7 @@ jobs:
       # Pinned to a commit rather than @v1: a moving tag means trusting the
       # upstream repository not to change under us.
       - name: Run slopless
-        continue-on-error: true
-        uses: fabriziosalmi/slopless@f8d0f6667e6be05513bd4273df183626273a9b8e # v1.4.5
+        uses: fabriziosalmi/slopless@fae72fa3497882376bac2b26ef9b425cacbedbb0 # v1.5.0
         with:
           # vendor/ holds Bootstrap and Font Awesome. slopless skips minified
           # output on its own, and this keeps it from reading it at all.
