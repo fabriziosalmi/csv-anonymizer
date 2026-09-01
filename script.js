@@ -452,24 +452,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const previewTable = document.getElementById('previewTable');
         const previewRows = Math.min(CONFIG.PREVIEW_ROWS, processedData.data.length);
         
-        let tableHTML = '<thead><tr>';
-        processedData.headers.forEach(header => {
-            tableHTML += `<th scope="col">${escapeHtml(header)}</th>`;
-        });
-        tableHTML += '</tr></thead><tbody>';
+        // Built through the DOM rather than assembled as markup. Every value here
+        // was already escaped, so this closes nothing; it removes the requirement
+        // to keep escaping it. textContent has no markup to escape, so a header
+        // called <script> stays a header called <script> no matter who edits this
+        // next.
+        previewTable.replaceChildren();
         
+        const headRow = previewTable.createTHead().insertRow();
+        processedData.headers.forEach(header => {
+            const cell = document.createElement('th');
+            cell.scope = 'col';
+            cell.textContent = header;
+            headRow.appendChild(cell);
+        });
+        
+        const body = previewTable.createTBody();
         for (let i = 0; i < previewRows; i++) {
             const row = processedData.data[i];
-            tableHTML += '<tr>';
+            const tr = body.insertRow();
             processedData.headers.forEach(header => {
-                const value = row[header] || '';
-                tableHTML += `<td>${escapeHtml(String(value))}</td>`;
+                tr.insertCell().textContent = String(row[header] || '');
             });
-            tableHTML += '</tr>';
         }
         
-        tableHTML += '</tbody>';
-        previewTable.innerHTML = tableHTML;
         previewContainer.style.display = 'block';
     }
     
@@ -487,15 +493,6 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadLinkContainer.style.display = 'block';
     }
     
-    /**
-     * Escape HTML to prevent XSS in preview
-     */
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
 
     // --- CSV Parsing Function (same as before) ---
     function parseCSV(csvText, delimiter = ',', quote = '"') {
