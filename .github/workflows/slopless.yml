@@ -25,7 +25,7 @@ jobs:
       # Pinned to a commit rather than @v1: a moving tag means trusting the
       # upstream repository not to change under us.
       - name: Run slopless
-        uses: fabriziosalmi/slopless@fae72fa3497882376bac2b26ef9b425cacbedbb0 # v1.5.0
+        uses: fabriziosalmi/slopless@957d17140f190b494e2526550dab5d0d8004431f # v1.9.0
         with:
           # vendor/ holds Bootstrap and Font Awesome. slopless skips minified
           # output on its own, and this keeps it from reading it at all.
