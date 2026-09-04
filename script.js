@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const previewContainer = document.getElementById('previewContainer');
     const fileSizeInfo = document.getElementById('fileSizeInfo');
     const fileSize = document.getElementById('fileSize');
+    const csvDelimiterSelect = document.getElementById('csvDelimiter');
+    const customDelimiterInput = document.getElementById('customDelimiterInput');
 
     // Configuration UI Elements
     const fuzzPresetInput = document.getElementById('fuzzPreset');
@@ -48,7 +50,45 @@ document.addEventListener('DOMContentLoaded', () => {
     // Global state
     let csvData = null;
     let processedData = null;
-    
+    let rawCsvText = null;
+
+    /**
+     * Resolve the currently selected delimiter character
+     */
+    function getSelectedDelimiter() {
+        const selected = csvDelimiterSelect.value;
+        if (selected === 'tab') return '\t';
+        if (selected === 'custom') return customDelimiterInput.value.charAt(0) || ',';
+        return selected;
+    }
+
+    /**
+     * Re-parse the currently loaded file if the delimiter changes
+     */
+    function reparseWithCurrentDelimiter() {
+        if (!rawCsvText) return;
+
+        try {
+            csvData = parseCSVEnhanced(rawCsvText, getSelectedDelimiter());
+            processedData = null;
+            downloadLinkContainer.style.display = 'none';
+            previewContainer.style.display = 'none';
+            fuzzButton.disabled = false;
+            showSuccess(`File re-parsed with new delimiter. Found ${csvData.data.length} rows with ${csvData.headers.length} columns.`);
+        } catch (error) {
+            console.error('Re-parsing error:', error);
+            showError(`Error parsing file with selected delimiter: ${error.message}`);
+            fuzzButton.disabled = true;
+        }
+    }
+
+    csvDelimiterSelect.addEventListener('change', () => {
+        customDelimiterInput.style.display = csvDelimiterSelect.value === 'custom' ? 'block' : 'none';
+        reparseWithCurrentDelimiter();
+    });
+
+    customDelimiterInput.addEventListener('input', reparseWithCurrentDelimiter);
+
     /**
      * File input change handler with enhanced validation
      */
@@ -76,7 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             showProcessing('Reading file...');
             const csvText = await readFileAsync(file);
-            csvData = parseCSVEnhanced(csvText);
+            rawCsvText = csvText;
+            csvData = parseCSVEnhanced(csvText, getSelectedDelimiter());
             
             hideProcessing();
             fuzzButton.disabled = false;
@@ -131,6 +172,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetUI();
         csvData = null;
         processedData = null;
+        rawCsvText = null;
         fuzzButton.disabled = true;
     });
 
@@ -484,7 +526,7 @@ document.addEventListener('DOMContentLoaded', () => {
      * Prepare download link for processed data
      */
     function prepareDownload(processedData) {
-        const csvText = convertToCSV(processedData);
+        const csvText = convertToCSV(processedData, getSelectedDelimiter());
         downloadLink.href = createDownloadLink(csvText);
         
         // Set filename with timestamp
@@ -722,7 +764,18 @@ document.addEventListener('DOMContentLoaded', () => {
             variation = Math.random() < 0.5 ? 0 : Math.floor(Math.random() * 5) * (Math.random() < 0.5 ? 1 : -1); // 0 or small int +/-
         }
 
-        return (num + variation).toFixed(2); // Keep to 2 decimal places for consistency
+        const result = num + variation;
+
+        // Preserve the original numeric format: integers stay integers, and
+        // decimals keep their original precision instead of always being forced to 2 places.
+        const trimmed = numberString.trim();
+        if (/^[+-]?\d+$/.test(trimmed)) {
+            return Math.round(result).toString();
+        }
+
+        const decimalMatch = trimmed.match(/\.(\d+)$/);
+        const decimalPlaces = decimalMatch ? decimalMatch[1].length : 2;
+        return result.toFixed(decimalPlaces);
     }
 
     function fuzzDate(dateString, dayVariationDays) {
@@ -995,6 +1048,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function isDate(value) {
+        // Plain numbers (ids, counts, years-as-quantities, etc.) are not dates, even though
+        // JS's lenient Date parser happily accepts bare integers like "5" or "1001".
+        if (isNumeric(value)) return false;
         const date = new Date(value);
         return !isNaN(date) && date.toString() !== 'Invalid Date';
     }
