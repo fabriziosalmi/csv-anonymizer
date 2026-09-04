@@ -34,6 +34,21 @@
                     <i class="fas fa-file-alt"></i> File size: <span id="fileSize">0</span>
                 </div>
             </div>
+            <div class="mb-3">
+                <label for="csvDelimiter" class="form-label">CSV Delimiter:</label>
+                <select class="form-select" id="csvDelimiter" aria-describedby="delimiterHelp">
+                    <option value="," selected>Comma (,)</option>
+                    <option value=";">Semicolon (;)</option>
+                    <option value="tab">Tab</option>
+                    <option value="|">Pipe (|)</option>
+                    <option value="custom">Custom&hellip;</option>
+                </select>
+                <input type="text" class="form-control mt-2" id="customDelimiterInput" maxlength="1"
+                       placeholder="Enter custom delimiter character" style="display: none;">
+                <div id="delimiterHelp" class="form-text">
+                    <i class="fas fa-info-circle"></i> Used to parse the uploaded file and to format the anonymized CSV output.
+                </div>
+            </div>
             <button id="fuzzButton" class="btn btn-primary btn-lg" disabled>
                 <i class="fas fa-magic"></i> Fuzz & Anonymize
             </button>
