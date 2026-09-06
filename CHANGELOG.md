@@ -2,6 +2,30 @@
 
 All notable changes to the CSV Anonymizer project will be documented in this file.
 
+## [Unreleased]
+
+### Fixed
+
+- **Header type detection matched substrings, so columns were typed wrongly and silently.** `provider`, `video_title`, `width` and `residence` all contain "id" and were typed as identifiers; `candidate` contains "date"; `plate_number` contains "lat" and was typed as a latitude, which sent its non-numeric values to a coordinate fuzzer that returns the input **unchanged**. Headers are now split into words and matched on whole words, with the common Italian, Spanish, French and German terms alongside the English ones.
+- **National identifiers, bank and card numbers were treated as generic text.** `codice_fiscale`, `iban`, `ssn`, `partita_iva` and `credit_card` matched no rule and were fuzzed as strings, so the output was a recognisable variant of the original: with the Mild preset a card number came back with a single digit changed.
+- **The "Moderate" preset redacted nothing**, which made it weaker than "Mild" despite its name and position. The three presets are now a ladder, each redacting everything the one below it redacts.
+
+### Added
+
+- **A `sensitive_id` category that is always redacted**, at every preset and in Custom, and cannot be fuzzed instead. Covers tax codes, national identity numbers, passports, bank accounts, IBANs, card numbers and security codes.
+- **IBAN detection by value**, validated with the ISO 13616 mod-97 check, so an account number under an uninformative header is still caught. The check digits make false positives essentially impossible, which is why this is the only value-based sensitive detection: a Luhn check on a bare number would redact one numeric order id in ten.
+- **A unit test suite** (`npm test`, no dependencies) covering the misclassifications above, so they cannot come back silently.
+
+### Removed
+
+- **`fuzzCSVData`, a second copy of the anonymization logic that nothing called.** It had diverged from the live path and logged every original value to the browser console, one line per cell.
+- Per-cell `console.log` of original values and detected types.
+
+### Changed
+
+- Empty cells stay empty instead of becoming `REDACTED`.
+- README: documented how columns are typed and what each preset does, corrected AGPL-3.0 being described as "permissive", and replaced a placeholder link.
+
 ## [1.2.0] - 2024-08-27
 
 ### 🚀 Major Improvements

@@ -67,6 +67,12 @@
                     </select>
                     <div id="presetHelp" class="form-text">
                         <i class="fas fa-lightbulb"></i> Choose a preset for quick setup or select "Custom" for full control.
+                        Each preset redacts everything the one above it redacts, and more.
+                        <br>
+                        <i class="fas fa-shield-halved"></i> Columns detected as sensitive identifiers (tax codes,
+                        national IDs, IBANs, card numbers) are always replaced with <code>REDACTED</code>, at every
+                        preset and in Custom. They are never fuzzed, because a perturbed identifier is still a
+                        recognisable variant of the original.
                     </div>
                 </div>
 
