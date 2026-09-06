@@ -14,12 +14,38 @@ Anonymize your CSV files directly in your browser with this static web applicati
 
 *   **🔒 Client-Side Privacy:** Your data remains completely private. All CSV processing and anonymization happens directly within your web browser, ensuring no data is transmitted to any server.
 *   **🗂️ Structure Preserved:**  Maintain the integrity of your CSV files. The anonymizer intelligently modifies data *within* the existing structure, keeping columns and formatting consistent.
-*   **🤩 Type-Aware Fuzzing & Redaction:**  Go beyond simple string replacement. This tool understands different data types (Numbers, Dates, Emails, URLs, YouTube URLs, Geographic Coordinates, Addresses, IDs, and general Strings) and applies appropriate anonymization techniques to each.
+*   **🤩 Type-Aware Fuzzing & Redaction:**  Go beyond simple string replacement. This tool understands different data types (Sensitive Identifiers, Numbers, Dates, Emails, URLs, YouTube URLs, Geographic Coordinates, Addresses, IDs, and general Strings) and applies appropriate anonymization techniques to each.
+*   **🛑 Sensitive Identifiers Are Always Redacted:** Columns detected as national identifiers, tax codes, bank accounts or card numbers are replaced with `REDACTED` at every preset, and cannot be fuzzed instead. See [How columns are typed](#-how-columns-are-typed).
 *   **🛠️ Highly Configurable Anonymization:**
     *   **Presets for Convenience:** Choose from "Mild," "Moderate," or "Aggressive" presets for quick and easy anonymization levels.
     *   **Advanced Customization:** Unlock granular control with the "Advanced Fuzzing Configuration" panel. Fine-tune redaction and fuzzing parameters for each data type to meet your specific anonymization requirements.
 *   **🛡️ Static & Serverless Application:**  Benefit from a secure and reliable tool. As a static web application, it operates entirely in your browser without relying on any backend server, eliminating data transmission and server-side vulnerabilities.
 *   **🚀 Fast and Efficient:**  Experience quick anonymization directly in your browser, without delays associated with uploading and downloading data to external servers.
+
+## 🔎 How columns are typed
+
+Anonymization is chosen per column, from the column header, falling back to the value when the header says nothing useful.
+
+Headers are split into words and matched on whole words, not on substrings. This matters: matching `id` as a substring types `provider`, `video_title` and `width` as identifiers, `date` inside `candidate` types it as a date, and `lat` inside `plate_number` types it as a latitude, which means non-numeric values are handed to a coordinate fuzzer that returns them **unchanged**.
+
+Recognised categories, in the order they are tried:
+
+| Category | Matched on headers such as | What happens to the value |
+|---|---|---|
+| **Sensitive identifier** | `ssn`, `iban`, `vat`, `passport`, `cvv`, `codice_fiscale`, `partita_iva`, `tax_id`, `national_id`, `credit_card`, `card_number`, `bank_account`, `driver_license` | Always `REDACTED`, at every preset |
+| Email | `email`, `mail`, `pec` | Replaced with a synthetic address |
+| URL / YouTube URL | `url`, `link`, `website`, `permalink` | Structure preserved, identifiers replaced |
+| Phone | `phone`, `tel`, `mobile`, `fax`, `telefono` | Always `REDACTED` |
+| Date | `date`, `year`, `dob`, `data`, `nascita` | Shifted by a random number of days |
+| Latitude / Longitude | `latitude`, `lat`, `lng`, `lon` | Perturbed numerically |
+| Address | `address`, `street`, `indirizzo`, `via` | Lightly fuzzed |
+| Identifier | `id`, `code`, `number`, `serial`, `sku`, `codice` | Redacted or length-preserving fuzz, per preset |
+| Currency | `price`, `amount`, `total`, `importo`, `prezzo` | Perturbed numerically |
+| String | anything else | Redacted or fuzzed, per preset |
+
+Common Italian, Spanish, French and German header words are recognised alongside the English ones. A value that is a **valid IBAN** (verified with the ISO 13616 mod-97 check) is treated as a sensitive identifier even when the header gives no clue.
+
+If a column of yours is typed wrongly, rename the header to include one of the words above, or use the Advanced panel to redact the whole class it landed in.
 
 ## 🚀 How to Use
 
@@ -29,9 +55,9 @@ Anonymize your CSV files directly in your browser with this static web applicati
 2.  **Upload Your CSV File:** Locate the "Choose File" button within the application. Click it and select the `.csv` file from your local computer that you intend to anonymize. The tool accepts standard comma-separated CSV files.
 3.  **Configure the Anonymization Process (Recommended):**
     *   **Select a Fuzzing Preset (Quick Setup):** For users seeking a fast and straightforward approach, use the "Fuzzing Preset" dropdown menu. Choose from three pre-defined levels:
-        *   **Mild Anonymization:** Applies subtle fuzzing, ideal for scenarios where data utility is paramount and minimal anonymization is needed.
-        *   **Moderate Anonymization:**  A balanced approach, offering a good level of privacy while preserving reasonable data accuracy. Suitable for general anonymization needs.
-        *   **Aggressive Anonymization:**  Maximizes privacy by applying stronger fuzzing and redaction. Use this for highly sensitive data where anonymity is critical, even at the cost of some data granularity.
+        *   **Mild Anonymization:** Redacts sensitive identifiers and identifier-like columns, fuzzes everything else lightly. Use when data utility matters most.
+        *   **Moderate Anonymization:** Everything Mild does, plus free-text columns are redacted rather than fuzzed. Numbers and dates are still perturbed rather than removed, so the shape of the data survives.
+        *   **Aggressive Anonymization:** Everything is redacted, numbers and dates included. Nothing of the original values remains.
         *   **Custom:** Select "Custom" if you wish to manually configure all anonymization parameters.
     *   **Advanced Fuzzing Configuration (Granular Control):** For fine-grained control over the anonymization process, click the "Advanced Fuzzing Configuration (Optional)" button to expand the advanced settings panel. Here, you can customize:
         *   **Redact Numbers:** Check the "Redact Numbers" checkbox to replace all detected numerical values in your CSV with the text `REDACTED`. Uncheck to apply fuzzing to numbers instead.
@@ -45,14 +71,22 @@ Anonymize your CSV files directly in your browser with this static web applicati
 
 4.  **Initiate Anonymization:** Once you have uploaded your CSV file and configured the anonymization settings to your liking (or chosen a preset), click the prominent "Fuzz & Anonymize" button. The application will begin processing your CSV data in your browser. A "Processing... Please wait." message will be displayed temporarily.
 5.  **Download Your Anonymized CSV:** Upon completion of the anonymization process, the "Processing..." message will disappear, and a "Download Fuzzed CSV" button will appear. Click this button to download the anonymized version of your CSV file. The downloaded file will be named `fuzzed_data.csv` and will be saved to your computer's default download location.
-6.  **Securely Share Your Data:** The downloaded `fuzzed_data.csv` file now contains the anonymized version of your data. You can confidently share this file, knowing that sensitive information has been processed according to your chosen settings, protecting the privacy of individuals while retaining the structural and analytical value of your dataset.
+6.  **Check Before You Share:** The downloaded file contains the anonymized version of your data, processed according to the settings you chose. Open it and look at it before sharing it, particularly the columns you care about: typing is heuristic, so a column with an unusual header may have landed in a weaker category than you expected. Fuzzed values are perturbations of the originals, not replacements for them, so anything you need genuinely removed should be redacted rather than fuzzed.
 
 ## ⚙️ Customization Options - In Detail
 
 *   **Fuzzing Presets:** For users who need a quick start or want to apply standard anonymization levels, presets are the easiest option. Choose from:
-    *   **Mild:**  Applies minimal fuzzing, primarily for light strings and small number variations. Redaction is generally disabled. Best for low-sensitivity data or when data utility is paramount.
-    *   **Moderate:**  A balanced preset with moderate fuzzing applied to numbers, dates, and strings. No redaction by default. A good general-purpose anonymization level.
-    *   **Aggressive:**  Applies heavy fuzzing and enables redaction for numbers, dates, and strings.  Suitable for highly sensitive data requiring strong anonymization.
+    The three presets are a ladder: each redacts everything the one below it redacts, and more. Sensitive identifiers are redacted by all of them.
+
+    | | Sensitive identifiers | Identifiers | Free text | Numbers | Dates |
+    |---|---|---|---|---|---|
+    | **Mild** | redacted | redacted | light fuzz | light fuzz | ±10 days |
+    | **Moderate** | redacted | redacted | redacted | fuzzed | ±30 days |
+    | **Aggressive** | redacted | redacted | redacted | redacted | redacted |
+
+    *   **Mild:**  Best for low-sensitivity data, or when data utility is paramount and you only need identifiers gone.
+    *   **Moderate:**  Removes anything that names or describes a person while keeping numeric and temporal structure. A good general-purpose level.
+    *   **Aggressive:**  Nothing of the original values survives. Use when the file only needs to have the right shape.
     *   **Custom:**  Select "Custom" to disable presets and manually configure all individual settings. This provides maximum flexibility to tailor the anonymization process.
 
 *   **Advanced Configuration Parameters:**  For users who require precise control, the "Advanced Fuzzing Configuration" section offers individual parameters for each data type:
@@ -77,8 +111,8 @@ Your contributions are highly appreciated! Whether you find bugs, have feature s
 *   **Make your Changes:** Implement bug fixes, new features, or improvements in your forked repository.
 *   **Submit a Pull Request:**  Once you are satisfied with your changes, submit a pull request to merge your work back into the main project.
 
-For feature requests or bug reports, please open an issue on the [GitHub repository](<link to your repo if public>).
+For feature requests or bug reports, please open an issue on the [GitHub repository](https://github.com/fabriziosalmi/csv-anonymizer/issues).
 
 ## 📜 License
 
-This project is open-source and distributed under the permissive [AGPL-3.0 License](https://www.gnu.org/licenses/agpl-3.0.en.html).  You are free to use, modify, and distribute this software in accordance with the terms of this license.
+This project is open-source and distributed under the [AGPL-3.0 License](https://www.gnu.org/licenses/agpl-3.0.en.html).  You are free to use, modify, and distribute this software in accordance with the terms of this license.

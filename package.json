@@ -6,7 +6,7 @@
   "scripts": {
     "serve": "npx http-server -p 8080 -c-1",
     "start": "npm run serve",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node test/detect-data-type.test.js"
   },
   "keywords": [
     "csv",

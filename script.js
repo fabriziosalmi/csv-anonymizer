@@ -13,7 +13,190 @@ const CONFIG = {
     CHUNK_SIZE: 1000, // Process in chunks for large files
 };
 
-document.addEventListener('DOMContentLoaded', () => {
+// --- Header-based data type detection ---
+//
+// Lives outside the DOMContentLoaded closure so it can be unit tested without a
+// DOM: see test/detect-data-type.test.js.
+//
+// Headers are split into tokens and matched on whole tokens rather than on raw
+// substrings. Substring matching was wrong in ways that were both silent and
+// systematic: "provider", "video_title", "width" and "residence" all contain
+// "id" and were typed as identifiers, "candidate" contains "date", and
+// "plate_number" contains "lat" and was typed as a latitude.
+
+const HEADER_SEPARATORS = /[^a-z0-9]+/;
+
+/**
+ * Splits a header into lowercase tokens, breaking on separators and on
+ * camelCase boundaries. "userId" and "user_id" both yield ["user", "id"].
+ * Accented characters are folded so "città" matches "citta".
+ * @param {string} header
+ * @returns {string[]}
+ */
+function tokenizeHeader(header) {
+    if (!header) return [];
+    return String(header)
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+        .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+        .toLowerCase()
+        .split(HEADER_SEPARATORS)
+        .filter(Boolean);
+}
+
+// Multi-token phrases are matched as a contiguous run of tokens, so
+// ["credit", "card"] matches "credit_card_number" but not "card_credit".
+const HEADER_TYPE_RULES = [
+    {
+        // Always redacted, whatever the preset says. These identify a specific
+        // person or account, and a perturbed version of one is still a
+        // recognisable variant of the original.
+        type: 'sensitive_id',
+        tokens: [
+            'ssn', 'sin', 'nino', 'nin', 'itin', 'tin',
+            'iban', 'bic', 'swift', 'sepa',
+            'vat', 'piva', 'cf', 'nif', 'nie', 'cif', 'dni', 'cpf', 'cnpj',
+            'rfc', 'curp', 'pesel', 'bsn', 'aadhaar',
+            'passport', 'passaporto', 'pasaporte', 'reisepass',
+            'cvv', 'cvc', 'iccid', 'imei',
+        ],
+        phrases: [
+            ['codice', 'fiscale'], ['partita', 'iva'],
+            ['tax', 'id'], ['tax', 'code'], ['tax', 'number'],
+            ['national', 'id'], ['national', 'insurance'],
+            ['social', 'security'], ['social', 'insurance'],
+            ['credit', 'card'], ['debit', 'card'], ['card', 'number'],
+            ['carta', 'credito'], ['numero', 'carta'],
+            ['account', 'number'], ['numero', 'conto'],
+            ['bank', 'account'], ['conto', 'corrente'],
+            ['driver', 'license'], ['driver', 'licence'],
+            ['driving', 'license'], ['driving', 'licence'],
+            ['id', 'card'], ['carta', 'identita'], ['documento', 'identita'],
+            ['health', 'card'], ['insurance', 'number'], ['policy', 'number'],
+        ],
+    },
+    {
+        type: 'email',
+        tokens: ['email', 'emails', 'mail', 'mails', 'pec', 'correo'],
+        phrases: [['e', 'mail'], ['posta', 'elettronica']],
+    },
+    {
+        type: 'youtube_url',
+        tokens: [],
+        phrases: [['youtube', 'url'], ['youtube', 'link'], ['yt', 'url']],
+        requireAll: ['youtube', 'url'],
+    },
+    {
+        type: 'url',
+        tokens: ['url', 'urls', 'uri', 'link', 'links', 'website', 'web',
+                 'homepage', 'permalink', 'sito', 'href'],
+        phrases: [['web', 'site'], ['site', 'url']],
+    },
+    {
+        type: 'phone',
+        tokens: ['phone', 'telephone', 'tel', 'mobile', 'cell', 'cellphone',
+                 'fax', 'msisdn', 'telefono', 'cellulare', 'movil', 'handy'],
+        phrases: [['phone', 'number'], ['numero', 'telefono']],
+    },
+    {
+        type: 'date',
+        tokens: ['date', 'dates', 'datetime', 'timestamp', 'time', 'year',
+                 'month', 'day', 'dob', 'birthdate', 'birthday', 'data',
+                 'ora', 'anno', 'mese', 'giorno', 'nascita', 'fecha', 'datum'],
+        phrases: [['date', 'of', 'birth'], ['data', 'nascita']],
+    },
+    {
+        type: 'latitude',
+        tokens: ['latitude', 'lat', 'latitudine', 'latitud'],
+        phrases: [],
+    },
+    {
+        type: 'longitude',
+        tokens: ['longitude', 'long', 'lng', 'lon', 'longitudine', 'longitud'],
+        phrases: [],
+    },
+    {
+        type: 'address',
+        tokens: ['address', 'addr', 'street', 'indirizzo', 'via', 'residence',
+                 'residenza', 'direccion', 'adresse', 'strasse'],
+        phrases: [['street', 'address'], ['home', 'address']],
+    },
+    {
+        type: 'id',
+        tokens: ['id', 'ids', 'identifier', 'uuid', 'guid', 'code', 'codice',
+                 'number', 'num', 'serial', 'sku', 'ref', 'reference', 'key'],
+        phrases: [],
+    },
+    {
+        type: 'currency',
+        tokens: ['price', 'cost', 'amount', 'currency', 'value', 'salary',
+                 'total', 'balance', 'prezzo', 'costo', 'importo', 'valore',
+                 'stipendio', 'saldo'],
+        phrases: [],
+    },
+];
+
+function tokensContainPhrase(tokens, phrase) {
+    for (let i = 0; i + phrase.length <= tokens.length; i++) {
+        let match = true;
+        for (let j = 0; j < phrase.length; j++) {
+            if (tokens[i + j] !== phrase[j]) { match = false; break; }
+        }
+        if (match) return true;
+    }
+    return false;
+}
+
+function matchHeaderRule(tokens, rule) {
+    if (rule.requireAll && rule.requireAll.every(t => tokens.includes(t))) return true;
+    if (rule.tokens.some(t => tokens.includes(t))) return true;
+    return rule.phrases.some(phrase => tokensContainPhrase(tokens, phrase));
+}
+
+/**
+ * Detects a data type from the column header. Returns null when no rule
+ * matches, so the caller can fall back to inspecting the value.
+ * @param {string} header
+ * @returns {string|null}
+ */
+function detectTypeFromHeader(header) {
+    const tokens = tokenizeHeader(header);
+    if (tokens.length === 0) return null;
+    for (const rule of HEADER_TYPE_RULES) {
+        if (matchHeaderRule(tokens, rule)) return rule.type;
+    }
+    return null;
+}
+
+/**
+ * Validates an IBAN with the ISO 13616 mod-97 check. Used to catch account
+ * numbers sitting under an uninformative header such as "col4". The check
+ * digits make false positives essentially impossible, which is why this is the
+ * only value-based sensitive detection here: a Luhn check on a bare number
+ * would redact one numeric order id in ten.
+ * @param {string} value
+ * @returns {boolean}
+ */
+function isIBAN(value) {
+    if (!value) return false;
+    const compact = String(value).replace(/[\s-]/g, '').toUpperCase();
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{10,30}$/.test(compact)) return false;
+
+    const rearranged = compact.slice(4) + compact.slice(0, 4);
+    let remainder = 0;
+    for (const char of rearranged) {
+        const digits = char >= 'A' && char <= 'Z'
+            ? (char.charCodeAt(0) - 55).toString()
+            : char;
+        for (const digit of digits) {
+            remainder = (remainder * 10 + Number(digit)) % 97;
+        }
+    }
+    return remainder === 1;
+}
+
+// The UI is only wired up in a browser. Guarding this lets the detection
+// functions above be required from Node by the unit tests.
+if (typeof document !== 'undefined') document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const csvFile = document.getElementById('csvFile');
     const fuzzButton = document.getElementById('fuzzButton');
@@ -451,6 +634,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const dataType = detectDataType(value, header.toLowerCase());
         
         switch (dataType) {
+            case 'sensitive_id':
+                // National identifiers, bank and card numbers. Always redacted,
+                // whatever the preset says: a perturbed tax code or IBAN is
+                // still a recognisable variant of the original, so there is no
+                // fuzz factor at which returning one would be safe.
+                return "REDACTED";
             case 'number':
                 return config.redactNumbers ? "REDACTED" : fuzzNumber(value, config.numberFuzzFactor);
             case 'date':
@@ -567,152 +756,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // --- Fuzzing/Anonymization Function (TYPE-AWARE - HEADER-NAME AWARE - WITH PRESETS & REDACTION) ---
-    /**
-     * Anonymizes CSV data by fuzzing or redacting values based on their data type and user configuration.
-     * @param {Object} csvObject - The CSV data object containing headers and data arrays
-     * @param {string[]} csvObject.headers - Array of column headers
-     * @param {Object[]} csvObject.data - Array of data objects where each object represents a row
-     * @returns {Object} A new object with the same structure as input but with fuzzed/redacted data
-     * @description
-     * This function processes CSV data and applies different fuzzing/redaction strategies based on:
-     * - Data type detection (numbers, dates, emails, phones, URLs, coordinates, addresses, IDs, strings)
-     * - User-configured fuzzing factors from UI inputs (number variation, date range, string modification probability)
-     * - User-selected redaction options (numbers, dates, strings, light strings)
-     * 
-     * The function preserves the original structure while anonymizing sensitive data through:
-     * - Number fuzzing with configurable variation
-     * - Date fuzzing within specified day ranges
-     * - Email anonymization
-     * - Phone number redaction
-     * - URL fuzzing (including special handling for YouTube URLs)
-     * - Geographic coordinate fuzzing
-     * - Address fuzzing
-     * - ID/identifier light fuzzing
-     * - Currency handling
-     * - String fuzzing with configurable probability
-     */
-    function fuzzCSVData(csvObject) {
-        const fuzzedData = { headers: [...csvObject.headers], data: [] }; // Copy headers
+    // --- Data Type Detection ---
+    // The header rules and the IBAN check live at file scope, above, so they can
+    // be unit tested. This wrapper keeps the value-based fallbacks.
 
-        // Get configuration values from UI elements
-        const currentNumberFuzzFactor = parseFloat(numberFuzzFactorInput.value);
-        const currentDateVariationDays = parseInt(dateVariationDaysInput.value, 10);
-        const currentStringFuzzProbability = parseFloat(stringFuzzProbabilityInput.value);
-        const currentStringLightFuzzProbability = parseFloat(stringLightFuzzProbabilityInput.value);
-        const shouldRedactNumbers = redactNumbersCheckbox.checked;
-        const shouldRedactDates = redactDatesCheckbox.checked;
-        const shouldRedactStrings = redactStringsCheckbox.checked;
-        const shouldRedactStringsLight = redactStringsLightCheckbox.checked;
-
-
-        for (const row of csvObject.data) {
-            const fuzzedRow = {};
-            for (const header of csvObject.headers) {
-                let originalValue = row[header];
-                let fuzzedValue = originalValue; // Default: no change
-
-                const dataType = detectDataType(originalValue, header.toLowerCase()); // Detect data type - NOW HEADER-NAME AWARE
-                console.log(`Header: ${header}, Original Value: ${originalValue}, Detected Type: ${dataType}`); // *** DEBUG LOGGING ***
-
-                switch (dataType) {
-                    case 'number':
-                        if (shouldRedactNumbers) {
-                            fuzzedValue = "REDACTED";
-                        } else {
-                            fuzzedValue = fuzzNumber(originalValue, currentNumberFuzzFactor); // Pass fuzzFactor
-                        }
-                        break;
-                    case 'date':
-                        if (shouldRedactDates) {
-                            fuzzedValue = "REDACTED";
-                        } else {
-                            fuzzedValue = fuzzDate(originalValue, currentDateVariationDays); // Pass dayVariationDays
-                        }
-                        break;
-                    case 'email':
-                        fuzzedValue = fuzzEmail(originalValue); // Using fuzzEmail now (email redaction could be added similarly)
-                        break;
-                    case 'phone':
-                        fuzzedValue = redactPhoneNumber(originalValue); // Phone number redaction is still fixed to "REDACTED" - Could be improved
-                        break;
-                    case 'youtube_url': // Specific case for YouTube URLs
-                        fuzzedValue = fuzzYoutubeURL(originalValue);
-                        break;
-                    case 'url':
-                        fuzzedValue = fuzzURL(originalValue);
-                        break;
-                    case 'latitude': // Geographic data types
-                    case 'longitude':
-                        if (shouldRedactNumbers) { // Reusing number redaction for coordinates for simplicity - Could have separate setting
-                            fuzzedValue = "REDACTED";
-                        } else {
-                            fuzzedValue = fuzzGeoCoordinate(originalValue, currentNumberFuzzFactor); // Using number fuzz factor for geo-coordinates for now
-                        }
-                        break;
-                    case 'address': // Simple address fuzzing - Could be significantly improved with address parsing libraries
-                        fuzzedValue = fuzzAddress(originalValue, currentStringLightFuzzProbability);
-                        break;
-                    case 'id': // Generic ID - Light string fuzzing
-                    case 'identifier':
-                        if (shouldRedactStringsLight) {
-                            fuzzedValue = "REDACTED";
-                        } else {
-                            fuzzedValue = fuzzStringLightLengthPreserving(originalValue, currentStringLightFuzzProbability, 'alphanumeric'); // Assuming alphanumeric IDs
-                        }
-                        break;
-                    case 'currency': // Treat currency as number for now
-                        if (shouldRedactNumbers) { // Use number redaction setting for currency too
-                            fuzzedValue = "REDACTED";
-                        } else {
-                            fuzzedValue = fuzzNumber(originalValue, currentNumberFuzzFactor); // Pass fuzzFactor
-                        }
-                        break;
-                    case 'string':
-                    default: // Default to string fuzzing
-                        if (shouldRedactStrings && dataType === 'string') { // Redact general strings
-                            fuzzedValue = "REDACTED";
-                        } else if (shouldRedactStringsLight && dataType !== 'string') { // Redact non-strings treated as light strings (IDs?) - Refinement might be needed here
-                           fuzzedValue = "REDACTED";
-                        }
-                        else if (dataType === 'string') {
-                            fuzzedValue = fuzzString(originalValue, currentStringFuzzProbability); // General string fuzz
-                        }
-                        else {
-                            fuzzedValue = fuzzStringLight(originalValue, currentStringLightFuzzProbability); // Light string fuzz for anything not explicitly typed
-                        }
-                        break;
-                }
-                console.log(`Header: ${header}, Fuzzed Value: ${fuzzedValue}`); // *** DEBUG LOGGING ***
-                fuzzedRow[header] = fuzzedValue;
-            }
-            fuzzedData.data.push(fuzzedRow);
-        }
-        return fuzzedData;
-    }
-
-    // --- Data Type Detection Function (HEADER-NAME AWARE) ---
     function detectDataType(value, headerLower) {
-        if (!value) return 'string'; // Empty values are strings
+        if (!value) return 'string'; // Empty values carry nothing to protect
 
-        if (headerLower.includes("email") || headerLower.includes("mail")) return 'email';
-        if (headerLower.includes("youtube") && headerLower.includes("url")) return 'youtube_url'; // More specific YouTube URL detection based on header
-        if (headerLower.includes("url") || headerLower.includes("link") || headerLower.includes("web")) return 'url';
-        if (headerLower.includes("date") || headerLower.includes("time") || headerLower.includes("year") || headerLower.includes("month") || headerLower.includes("day")) return 'date';
-        if (headerLower.includes("phone") || headerLower.includes("tel") || headerLower.includes("fax")) return 'phone';
-        if (headerLower.includes("latitude") || headerLower.includes("lat")) return 'latitude';
-        if (headerLower.includes("longitude") || headerLower.includes("long") || headerLower.includes("lng")) return 'longitude';
-        if (headerLower.includes("address") || headerLower.includes("addr")) return 'address';
-        if (headerLower.includes("id") || headerLower.includes("identifier") || headerLower.includes("code") || headerLower.includes("number") || headerLower.includes("serial")) return 'id'; // Broader ID detection
-        if (headerLower.includes("price") || headerLower.includes("cost") || headerLower.includes("amount") || headerLower.includes("currency") || headerLower.includes("value")) return 'currency';
+        const headerType = detectTypeFromHeader(headerLower);
+        if (headerType) return headerType;
 
-
-        if (isEmail(value)) return 'email'; // Pattern-based checks as fallback, after header hints
+        // Pattern-based checks, used when the header says nothing useful.
+        if (isIBAN(value)) return 'sensitive_id';
+        if (isEmail(value)) return 'email';
         if (isYoutubeURL(value)) return 'youtube_url';
         if (isURL(value)) return 'url';
         if (isDate(value)) return 'date';
         if (isNumeric(value)) return 'number';
-
 
         return 'string'; // Default to string if no other type is detected
     }
@@ -742,11 +802,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const fullDomain = domainName + domainExtension;
 
         return `${fullUsername}@${fullDomain}`;
-    }
-
-    function redactPhoneNumber(phoneNumber) {
-        if (!phoneNumber) return "";
-        return "REDACTED"; // Redact entire phone number (default behavior as before)
     }
 
     function fuzzNumber(numberString, fuzzFactor) {
@@ -1102,6 +1157,9 @@ document.addEventListener('DOMContentLoaded', () => {
         applyPresetSettings(selectedPreset);
     });
 
+    // The three presets are a ladder: each redacts everything the one below it
+    // redacts, and more. Columns detected as sensitive identifiers are redacted
+    // by all of them, including Mild, and cannot be fuzzed instead.
     function applyPresetSettings(presetName) {
         let numberFuzzFactor = 0.3;
         let dateVariationDays = 30;
@@ -1114,6 +1172,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         switch (presetName) {
             case 'mild':
+                // Redacts identifier-like columns, fuzzes everything else
+                // lightly so the file stays usable as a fixture.
                 numberFuzzFactor = 0.1;
                 dateVariationDays = 10;
                 stringFuzzProbability = 0.2;
@@ -1124,14 +1184,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 redactStringsLight = true; // Mild redact IDs/light strings
                 break;
             case 'moderate':
+                // Redacts what identifies (free text and identifiers) and fuzzes
+                // what is only quantitative, so the shape of the data survives
+                // for testing. Previously this preset redacted nothing at all,
+                // which made it weaker than Mild despite its name.
                 numberFuzzFactor = 0.3;
                 dateVariationDays = 30;
                 stringFuzzProbability = 0.4;
                 stringLightFuzzProbability = 0.15;
                 redactNumbers = false;
                 redactDates = false;
-                redactStrings = false;
-                redactStringsLight = false;
+                redactStrings = true;
+                redactStringsLight = true;
                 break;
             case 'aggressive':
                 numberFuzzFactor = 0.7;
@@ -1166,3 +1230,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 });
+
+// Exported for the unit tests; ignored by the browser, which has no `module`.
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { tokenizeHeader, detectTypeFromHeader, isIBAN, HEADER_TYPE_RULES };
+}
